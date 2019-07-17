@@ -35,12 +35,22 @@ def tox_configure(config):
 
     return config
 
+class InterpreterMismatch(tox.exception.InterpreterNotFound):
+    """Interpreter version in current env does not match requested version"""
 
 @tox.hookimpl
 def tox_testenv_create(venv, action):
     """We don't create anything"""
     config = venv.envconfig.config
     if config.option.current_env or config.option.print_deps_only:
+        version_info = venv.envconfig.python_info.version_info
+        if version_info[:2] != sys.version_info[:2]:
+            raise InterpreterMismatch(
+                f'tox_current_env: interpreter versions do not match:\n'
+                + f'    in current env: {tuple(sys.version_info)}\n'
+                + f'    requested: {version_info}',
+            )
+
         # Make sure the `python` command on path is sys.executable.
         # (We might have e.g. /usr/bin/python3, not `python`.)
         # Remove the rest of the virtualenv.

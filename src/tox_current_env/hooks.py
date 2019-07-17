@@ -24,8 +24,7 @@ def tox_addoption(parser):
 
 @tox.hookimpl
 def tox_configure(config):
-    """Stores a global varibale with current_env option.
-    Makes all commands external"""
+    """Stores options in the config. Makes all commands external"""
     if config.option.print_deps_only:
         config.skipsdist = True
     elif config.option.current_env:
@@ -42,6 +41,9 @@ def tox_testenv_create(venv, action):
     """We don't create anything"""
     config = venv.envconfig.config
     if config.option.current_env or config.option.print_deps_only:
+        # Make sure the `python` command on path is sys.executable.
+        # (We might have e.g. /usr/bin/python3, not `python`.)
+        # Remove the rest of the virtualenv.
         link = venv.envconfig.get_envpython()
         target = sys.executable
         shutil.rmtree(os.path.dirname(link), ignore_errors=True)
@@ -61,6 +63,6 @@ def tox_testenv_install_deps(venv, action):
 @tox.hookimpl
 def tox_runtest(venv, redirect):
     if venv.envconfig.config.option.print_deps_only:
-        for depndency in venv.get_resolved_dependencies():
-            print(depndency)
+        for dependency in venv.get_resolved_dependencies():
+            print(dependency)
         return True

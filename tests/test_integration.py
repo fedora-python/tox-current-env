@@ -60,17 +60,33 @@ def test_regular_run():
     assert "congratulations" in result.stdout
 
 
-def test_regular_after_current():
-    tox("-e", NATIVE_TOXENV, "--current-env")
-    result = tox("-e", NATIVE_TOXENV, prune=False)
-    assert f"/.tox/{NATIVE_TOXENV}/bin/python" in result.stdout.splitlines()[0]
+def test_regular_after_current_is_not_supported():
+    result = tox("-e", NATIVE_TOXENV, "--current-env")
+    assert result.stdout.splitlines()[0] == NATIVE_EXECUTABLE
+    result = tox("-e", NATIVE_TOXENV, prune=False, check=False)
+    assert result.returncode > 0
+    assert "not supported" in result.stderr
 
 
 def test_regular_recreate_after_current():
-    tox("-e", NATIVE_TOXENV, "--current-env")
-    tox("-re", NATIVE_TOXENV, prune=False)
+    result = tox("-e", NATIVE_TOXENV, "--current-env")
+    assert result.stdout.splitlines()[0] == NATIVE_EXECUTABLE
+    result = tox("-re", NATIVE_TOXENV, prune=False)
+    assert f"/.tox/{NATIVE_TOXENV}/bin/python" in result.stdout
+    assert "not supported" not in result.stderr
 
 
-def test_current_after_regular():
-    tox("-e", NATIVE_TOXENV)
-    tox("-e", NATIVE_TOXENV, "--current-env", prune=False)
+@pytest.mark.parametrize("option", ["--current-env", "--print-deps-only"])
+def test_current_after_regular_is_not_supported(option):
+    result = tox("-e", NATIVE_TOXENV)
+    assert f"/.tox/{NATIVE_TOXENV}/bin/python" in result.stdout
+    result = tox("-e", NATIVE_TOXENV, option, prune=False, check=False)
+    assert result.returncode > 0
+    assert "not supported" in result.stderr
+
+
+def test_current_recreate_after_regular():
+    result = tox("-e", NATIVE_TOXENV)
+    assert f"/.tox/{NATIVE_TOXENV}/bin/python" in result.stdout
+    result = tox("-re", NATIVE_TOXENV, "--current-env", prune=False)
+    assert result.stdout.splitlines()[0] == NATIVE_EXECUTABLE

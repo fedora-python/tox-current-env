@@ -28,27 +28,28 @@ def tox_configure(config):
     if config.option.print_deps_only:
         config.skipsdist = True
     elif config.option.current_env:
-        config.option.recreate = True
         config.skipsdist = True
         for testenv in config.envconfigs:
             config.envconfigs[testenv].whitelist_externals = "*"
 
     return config
 
+
 class InterpreterMismatch(tox.exception.InterpreterNotFound):
     """Interpreter version in current env does not match requested version"""
 
+
 @tox.hookimpl
 def tox_testenv_create(venv, action):
-    """We don't create anything"""
+    """We create a fake virtualenv with just the symbolic link"""
     config = venv.envconfig.config
     if config.option.current_env or config.option.print_deps_only:
         version_info = venv.envconfig.python_info.version_info
         if version_info[:2] != sys.version_info[:2]:
             raise InterpreterMismatch(
-                f'tox_current_env: interpreter versions do not match:\n'
-                + f'    in current env: {tuple(sys.version_info)}\n'
-                + f'    requested: {version_info}',
+                f"tox_current_env: interpreter versions do not match:\n"
+                + f"    in current env: {tuple(sys.version_info)}\n"
+                + f"    requested: {version_info}"
             )
 
         # Make sure the `python` command on path is sys.executable.
@@ -66,17 +67,56 @@ def tox_testenv_create(venv, action):
         return None  # let tox handle the rest
 
 
+def _python_activate_exists(venv):
+    python = venv.envconfig.get_envpython()
+    bindir = os.path.dirname(python)
+    activate = os.path.join(bindir, "activate")
+    return os.path.exists(python), os.path.exists(activate)
+
+
+def is_current_env_link(venv):
+    python, activate = _python_activate_exists(venv)
+    return python and not activate
+
+
+def is_proper_venv(venv):
+    python, activate = _python_activate_exists(venv)
+    return python and activate
+
+
+def unsupported_raise(config, venv):
+    if not config.option.recreate:
+        if not (
+            config.option.current_env or config.option.print_deps_only
+        ) and is_current_env_link(venv):
+            raise tox.exception.ConfigError(
+                "Regular tox run after --current-env or --print-deps-only tox run is not supported without --recreate (-r)."
+            )
+        elif is_proper_venv(venv):
+            if config.option.current_env:
+                raise tox.exception.ConfigError(
+                    "--current-env after regular tox run is not supported without --recreate (-r)."
+                )
+            elif config.option.print_deps_only:
+                raise tox.exception.ConfigError(
+                    "--print-deps-only after regular tox run is not supported without --recreate (-r)."
+                )
+
+
 @tox.hookimpl
 def tox_testenv_install_deps(venv, action):
     """We don't install anything"""
     config = venv.envconfig.config
+    unsupported_raise(config, venv)
     if config.option.current_env or config.option.print_deps_only:
         return True
 
 
 @tox.hookimpl
 def tox_runtest(venv, redirect):
-    if venv.envconfig.config.option.print_deps_only:
+    config = venv.envconfig.config
+    unsupported_raise(config, venv)
+    if config.option.print_deps_only:
         for dependency in venv.get_resolved_dependencies():
             print(dependency)
         return True

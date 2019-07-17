@@ -56,10 +56,14 @@ def tox_testenv_create(venv, action):
         # Remove the rest of the virtualenv.
         link = venv.envconfig.get_envpython()
         target = sys.executable
-        shutil.rmtree(os.path.dirname(link), ignore_errors=True)
+        shutil.rmtree(os.path.dirname(os.path.dirname(link)), ignore_errors=True)
         os.makedirs(os.path.dirname(link))
         os.symlink(target, link)
         return True
+    else:
+        link = venv.envconfig.get_envpython()
+        shutil.rmtree(os.path.dirname(os.path.dirname(link)), ignore_errors=True)
+        return None  # let tox handle the rest
 
 
 @tox.hookimpl

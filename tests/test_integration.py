@@ -66,7 +66,6 @@ def test_regular_after_current():
     assert f"/.tox/{NATIVE_TOXENV}/bin/python" in result.stdout.splitlines()[0]
 
 
-@pytest.mark.xfail(reason="Regular tox refuses to remove our fake virtualenv")
 def test_regular_recreate_after_current():
     tox("-e", NATIVE_TOXENV, "--current-env")
     tox("-re", NATIVE_TOXENV, prune=False)

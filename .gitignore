@@ -1,3 +1,8 @@
 __pycache__/
-/build/
-/dist/
+build/
+dist/
+.tox/
+*.tar.gz
+*.zip
+*.egg-info
+*.dist-info

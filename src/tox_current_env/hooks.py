@@ -24,10 +24,8 @@ def tox_addoption(parser):
 
 @tox.hookimpl
 def tox_configure(config):
-    """Stores options in the config. Makes all commands external"""
-    if config.option.print_deps_only:
-        config.skipsdist = True
-    elif config.option.current_env:
+    """Stores options in the config. Makes all commands external and skips sdist"""
+    if config.option.current_env or config.option.print_deps_only:
         config.skipsdist = True
         for testenv in config.envconfigs:
             config.envconfigs[testenv].whitelist_externals = "*"
@@ -43,7 +41,10 @@ class InterpreterMismatch(tox.exception.InterpreterNotFound):
 def tox_testenv_create(venv, action):
     """We create a fake virtualenv with just the symbolic link"""
     config = venv.envconfig.config
-    if config.option.current_env or config.option.print_deps_only:
+    if config.option.print_deps_only:
+        # We don't need anything
+        return True
+    if config.option.current_env:
         version_info = venv.envconfig.python_info.version_info
         if version_info[:2] != sys.version_info[:2]:
             raise InterpreterMismatch(
@@ -85,22 +86,17 @@ def is_proper_venv(venv):
 
 
 def unsupported_raise(config, venv):
-    if not config.option.recreate:
-        if not (
-            config.option.current_env or config.option.print_deps_only
-        ) and is_current_env_link(venv):
-            raise tox.exception.ConfigError(
-                "Regular tox run after --current-env or --print-deps-only tox run is not supported without --recreate (-r)."
-            )
-        elif is_proper_venv(venv):
-            if config.option.current_env:
-                raise tox.exception.ConfigError(
-                    "--current-env after regular tox run is not supported without --recreate (-r)."
-                )
-            elif config.option.print_deps_only:
-                raise tox.exception.ConfigError(
-                    "--print-deps-only after regular tox run is not supported without --recreate (-r)."
-                )
+    if config.option.recreate:
+        return
+    regular = not (config.option.current_env or config.option.print_deps_only)
+    if regular and is_current_env_link(venv):
+        raise tox.exception.ConfigError(
+            "Regular tox run after --current-env or --print-deps-only tox run is not supported without --recreate (-r)."
+        )
+    elif config.option.current_env and is_proper_venv(venv):
+        raise tox.exception.ConfigError(
+            "--current-env after regular tox run is not supported without --recreate (-r)."
+        )
 
 
 @tox.hookimpl
@@ -114,6 +110,7 @@ def tox_testenv_install_deps(venv, action):
 
 @tox.hookimpl
 def tox_runtest(venv, redirect):
+    """If --print-deps-only, prints deps instead of running tests"""
     config = venv.envconfig.config
     unsupported_raise(config, venv)
     if config.option.print_deps_only:

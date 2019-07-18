@@ -3,6 +3,7 @@ import pathlib
 import shutil
 import subprocess
 import sys
+import textwrap
 
 import pytest
 
@@ -46,10 +47,39 @@ def test_all_toxenv_current_env_skip_missing():
     assert result.returncode == 0
 
 
-def test_native_toxenv_print_deps_only():
-    result = tox("-e", NATIVE_TOXENV, "--print-deps-only")
-    assert result.stdout.splitlines()[0] == "six"
-    assert result.stdout.splitlines()[1] == "py"
+@pytest.mark.parametrize("toxenv", ["py36", "py37", "py38"])
+def test_print_deps_only(toxenv):
+    result = tox("-e", toxenv, "--print-deps-only")
+    expected = textwrap.dedent(
+        f"""
+        six
+        py
+        ___________________________________ summary ____________________________________
+          {toxenv}: commands succeeded
+          congratulations :)
+        """
+    ).lstrip()
+    assert result.stdout == expected
+
+
+def test_allenvs_print_deps_only():
+    result = tox("--print-deps-only")
+    expected = textwrap.dedent(
+        """
+        six
+        py
+        six
+        py
+        six
+        py
+        ___________________________________ summary ____________________________________
+          py36: commands succeeded
+          py37: commands succeeded
+          py38: commands succeeded
+          congratulations :)
+        """
+    ).lstrip()
+    assert result.stdout == expected
 
 
 def test_regular_run():
@@ -82,11 +112,10 @@ def test_regular_recreate_after_current():
     assert "not supported" not in result.stderr
 
 
-@pytest.mark.parametrize("option", ["--current-env", "--print-deps-only"])
-def test_current_after_regular_is_not_supported(option):
+def test_current_after_regular_is_not_supported():
     result = tox("-e", NATIVE_TOXENV)
     assert f"/.tox/{NATIVE_TOXENV}/bin/python" in result.stdout
-    result = tox("-e", NATIVE_TOXENV, option, prune=False, check=False)
+    result = tox("-e", NATIVE_TOXENV, "--current-env", prune=False, check=False)
     assert result.returncode > 0
     assert "not supported" in result.stderr
 
@@ -96,3 +125,28 @@ def test_current_recreate_after_regular():
     assert f"/.tox/{NATIVE_TOXENV}/bin/python" in result.stdout
     result = tox("-re", NATIVE_TOXENV, "--current-env", prune=False)
     assert result.stdout.splitlines()[0] == NATIVE_EXECUTABLE
+
+
+def test_current_after_deps_only():
+    # this is quite fast, so we can do it several times
+    first = True
+    for _ in range(3):
+        result = tox("-e", NATIVE_TOXENV, "--print-deps-only", prune=first)
+        first = False
+        assert "bin/python" not in result.stdout
+        assert "six" in result.stdout
+        result = tox("-re", NATIVE_TOXENV, "--current-env", prune=False)
+        assert result.stdout.splitlines()[0] == NATIVE_EXECUTABLE
+
+
+def test_regular_after_deps_only():
+    result = tox("-e", NATIVE_TOXENV, "--print-deps-only")
+    assert "bin/python" not in result.stdout
+    assert "six" in result.stdout
+
+    result = tox("-re", NATIVE_TOXENV, prune=False)
+    assert result.stdout.splitlines()[0] != NATIVE_EXECUTABLE
+
+    result = tox("-e", NATIVE_TOXENV, "--print-deps-only", prune=False)
+    assert "bin/python" not in result.stdout
+    assert "six" in result.stdout

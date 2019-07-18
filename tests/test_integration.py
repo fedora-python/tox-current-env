@@ -29,6 +29,7 @@ def tox(*args, prune=True, **kwargs):
 def test_native_toxenv_current_env():
     result = tox("-e", NATIVE_TOXENV, "--current-env")
     assert result.stdout.splitlines()[0] == NATIVE_EXECUTABLE
+    assert not (DOT_TOX / NATIVE_TOXENV / "lib").is_dir()
 
 
 def test_all_toxenv_current_env():
@@ -58,6 +59,11 @@ def test_regular_run():
     assert "/.tox/py37/bin/python" in lines[1]
     assert "/.tox/py38/bin/python" in lines[2]
     assert "congratulations" in result.stdout
+    for y in 6, 7, 8:
+        for pkg in "py", "six", "test":
+            sitelib = DOT_TOX / f"py3{y}/lib/python3.{y}/site-packages"
+            assert sitelib.is_dir()
+            assert len(list(sitelib.glob(f"{pkg}-*.dist-info"))) == 1
 
 
 def test_regular_after_current_is_not_supported():

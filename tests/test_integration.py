@@ -27,6 +27,14 @@ def tox(*args, prune=True, **kwargs):
     return cp
 
 
+def is_available(python):
+    try:
+        subprocess.run((python, "--version"))
+    except FileNotFoundError:
+        return False
+    return True
+
+
 def test_native_toxenv_current_env():
     result = tox("-e", NATIVE_TOXENV, "--current-env")
     assert result.stdout.splitlines()[0] == NATIVE_EXECUTABLE
@@ -37,6 +45,17 @@ def test_all_toxenv_current_env():
     result = tox("--current-env", check=False)
     assert NATIVE_EXECUTABLE in result.stdout.splitlines()
     assert result.stdout.count("InterpreterMismatch:") >= 2
+    assert result.returncode > 0
+
+
+@pytest.mark.parametrize("python", ["python3.4", "python3.5"])
+def test_missing_toxenv_current_env(python):
+    if is_available(python):
+        pytest.skip(f"Only works if {python} is not available in $PATH")
+    env = python.replace("python", "py").replace(".", "")
+    result = tox("-e", env, "--current-env", check=False)
+    assert f"InterpreterNotFound: {python}" in result.stdout
+    assert "Traceback" not in (result.stderr + result.stdout)
     assert result.returncode > 0
 
 

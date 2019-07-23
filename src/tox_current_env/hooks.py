@@ -46,6 +46,8 @@ def tox_testenv_create(venv, action):
         return True
     if config.option.current_env:
         version_info = venv.envconfig.python_info.version_info
+        if version_info is None:
+            raise tox.exception.InterpreterNotFound(venv.envconfig.basepython)
         if version_info[:2] != sys.version_info[:2]:
             raise InterpreterMismatch(
                 f"tox_current_env: interpreter versions do not match:\n"

@@ -22,20 +22,37 @@ The ``tox-current-env`` plugin adds two options:
 Invoking ``tox`` without any of the above options should behave as regular ``tox`` invocation without this plugin.
 Any deviation from this behavior is considered a bug.
 
+The plugin disables *tox's way* of providing a testing environment,
+but assumes that you supply one in *some other way*.
+Always run ``tox`` with this plugin in a fresh isolated environment,
+such as Python virtualenv, Linux container or chroot.
+\
+See other caveats below.
+
 
 Motivation
 ----------
 
 Obviously, ``tox`` was created to run tests in isolated Python virtual environments.
 The ``--current-env`` flag totally defeats the purpose of ``tox``.
-Why would anybody do that, you might ask.
+Why would anybody do that, you might ask?
 
-This plugin was created for `Fedora <https://fedoralovespython.org/>`_'s needs.
-When we package Python software as RPM packages, we try to run the upstream test suite during package build.
-However there is no standardization of declaring Python test dependencies or invoking tests.
-The de-facto standard is ``tox``.
-However we need to test if the software works integrated into Fedora,
-not if it works with ``pip``-installed packages in an isolated environment.
+Well, it turns out that ``tox`` became too popular and gained another purpose.
+
+The Python ecosystem now has formal `specifications <https://packaging.python.org/specifications/>`_ for many pieces of package metadata like versions or dependencies.
+However, there is no standardization yet for declaring *test dependencies* or *running tests*.
+The most popular de-facto standard for that today is ``tox``,
+and we expect a future standard to evolve from ``tox.ini``.
+This plugin lets us use ``tox``'s dependency lists and testing commands for environments other than Python venvs.
+
+We hope this plugin will enable community best practices around ``tox`` configuration
+to grow to better accomodate non-virtualenv environments in general – for example,
+Linux distros, Conda, or containers.
+
+Specifically, this plugin was created for `Fedora <https://fedoralovespython.org/>`_'s needs.
+When we package Python software as RPM packages, we try to run the project's test suite during package build.
+However, we need to test if the software works integrated into Fedora,
+not with packages downloaded from PyPI into a fresh environment.
 By running the tests in *current environment*, we can achieve that.
 
 If you are interested in the RPM packaging part of this,
@@ -64,7 +81,7 @@ and ``pip``-installing locally:
 Usage
 -----
 
-When the plugin is installed, use ``tox`` with the ``--current-env`` or `` --print-deps-only`` and all the other options as usual. Assuming your ``tox`` is installed on Python 3.7:
+When the plugin is installed, use ``tox`` with ``--current-env`` or ``--print-deps-only`` and all the other options as usual. Assuming your ``tox`` is installed on Python 3.7:
 
 .. code-block:: console
 
@@ -82,7 +99,7 @@ Attempting to run the ``py36`` environment's test will fail:
 
 .. code-block:: console
 
-   $ tox -e py37 --current-env
+   $ tox -e py36 --current-env
    py36 create: /home/pythonista/projects/holy-grail/tests/.tox/py36
    ERROR: InterpreterMismatch: tox_current_env: interpreter versions do not match:
        in current env: (3, 7, 4, 'final', 0)
@@ -109,48 +126,66 @@ To get list of test dependencies, run:
 
 
 Caveats, warnings and limitations
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+---------------------------------
 
-Running (especially third party software's) tests in your system installed Python environment is dangerous.
-Always install ``tox`` and this plugin to some isolated environment,
-such as Python virtualenv, Linux container or chroot.
+Use an isolated environment
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Running (especially third party software's) tests in your system Python environment is dangerous.
+Always use this plugin in an isolated environment,
+such as Python virtualenv, Linux container, virtual machine or chroot.
 You have been warned.
+
+Do not rely on virtualenv details
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In order to support the ``python`` command in the ``commands`` section,
 the current environment invocation of ``tox`` creates a fake virtual environment
-that just have a symbolic link to the Python executable.
+that just has a symbolic link to the Python executable.
+The link is named ``python`` even if the real interpreter's name is different
+(such as ``python3.7`` or ``pypy``).
+Any other commands are not linked anywhere and it is the users' responsibility
+to make sure such commands are in ``$PATH`` and use the correct Python.
 This can lead to slightly different results of tests than invoking them directly,
-especially if you have assumptions about ``sys.executable`` in your tests.
-Any other commands (such as ``pytest``) are not linked anywhere
-and it is the users' responsibility to make sure such commands are in ``$PATH`` and use the correct Python.
+especially if you have assumptions about ``sys.executable`` or other commands
+in your tests.
+
+As a specific example, tests should invoke ``python -m pytest`` rather than assuming
+the ``pytest`` command is present and uses the correct version of Python.
+
+Don't mix current-env and regular tox runs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Tox caches the virtualenvs it creates, and doesn't distinguish between
+regular virtualenvs and ``--current-env``.
+Don't mix ``tox --current-env`` runs and regular ``tox`` runs (without the flag).
+If you ever need to do this, use tox's ``--recreate/-r`` flag to clear the cache.
+
+The plugin should abort with a meaningful error message if this is detected,
+but in some cases (such as running ``tox --current-env``, uninstalling the
+plugin, and running ``tox``), you will get undefined results
+(such as installing packages from PyPI into your current environment).
+
+Other limitations and known bugs
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The ``installed:`` line in the output of ``tox --print-deps-only`` shows irrelevant output
+(based on the content of the real or faked virtual environment).
 
 Regardless of any `Python flags <https://docs.python.org/3/using/cmdline.html>`_ used in the shebang of ``tox``,
 the tests are invoked with ``sys.executable`` without any added flags
 (unless explicitly invoked with them in the ``commands`` section).
 
-The ``installed:`` line in the output of ``tox --print-deps-only`` shows irrelevant output
-(based on the content of the real or faked virtual environment).
-
-Running ``tox --current-env`` after regular ``tox``
-(that is without the ``--current-env`` switch)
-or vice versa is not supported without the ``--recreate/-r`` flag
-(``tox`` will emergency abort in that situation).
-Additionally, running ``tox --current-env``,
-uninstalling the ``tox-current-env``
-and running ``tox`` without the ``--recreate/-r`` flag
-will most likely attempt to install packages into your current environment
-and will provide further undefined results.
-Being uninstalled, ``tox-current-env`` cannot longer prevent this.
-
 The current environment's Python is tested for the major and minor version only.
-Possibly multiple different 3.X versions (such as CPython and PyPy) are treated as equal.
+Different interpreters with the same Python version (such as CPython and PyPy) are treated as equal.
 
 Only Linux is supported, with special emphasis on Fedora.
 This plugin might work on other Unix-like systems,
 but does not work on Microsoft Windows.
 
-This is an alpha quality software.
+This is alpha quality software.
 Use it at your on your own risk.
+Pull requests with improvements are welcome.
 
 
 Development, issues, support
@@ -171,13 +206,13 @@ On Fedora, you just need to ``dnf install tox``.
 
 Run ``tox`` to invoke the tests.
 
-Running tests of this plugin with this plugin installed and ``--current-env`` flag will most likely blow up.
+Running tests of this plugin with its own ``--current-env`` flag will most likely blow up.
 
 
 License
 -------
 
-The ``tox-current-env`` project is licensed under so-called MIT license, full text available in the `LICENSE <https://github.com/fedora-python/tox-current-env/blob/master/LICENSE>`_ file.
+The ``tox-current-env`` project is licensed under the so-called MIT license, full text available in the `LICENSE <https://github.com/fedora-python/tox-current-env/blob/master/LICENSE>`_ file.
 
 
 Code of Conduct

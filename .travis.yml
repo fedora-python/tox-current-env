@@ -1,0 +1,16 @@
+language: generic
+
+services:
+  - docker
+
+env:
+  - FEDORA=29
+  - FEDORA=30
+  - FEDORA=rawhide
+
+install:
+  - sed -i "s|FROM fedora|FROM registry.fedoraproject.org/fedora:${FEDORA}|" Dockerfile
+  - docker build -t tox-current-env .
+
+script:
+  - docker run -v $(pwd):$(pwd) -w $(pwd) -i -t tox-current-env

@@ -1,3 +1,4 @@
+import functools
 import os
 import pathlib
 import shutil
@@ -27,6 +28,7 @@ def tox(*args, prune=True, **kwargs):
     return cp
 
 
+@functools.lru_cache(maxsize=8)
 def is_available(python):
     try:
         subprocess.run((python, "--version"))
@@ -35,12 +37,21 @@ def is_available(python):
     return True
 
 
+needs_py3678 = pytest.mark.skipif(
+    not is_available("python3.6")
+    or not is_available("python3.7")
+    or not is_available("python3.8"),
+    reason="This test needs all of python3.6, python3.7 and python3.8 to be available in $PATH",
+)
+
+
 def test_native_toxenv_current_env():
     result = tox("-e", NATIVE_TOXENV, "--current-env")
     assert result.stdout.splitlines()[0] == NATIVE_EXECUTABLE
     assert not (DOT_TOX / NATIVE_TOXENV / "lib").is_dir()
 
 
+@needs_py3678
 def test_all_toxenv_current_env():
     result = tox("--current-env", check=False)
     assert NATIVE_EXECUTABLE in result.stdout.splitlines()
@@ -59,6 +70,7 @@ def test_missing_toxenv_current_env(python):
     assert result.returncode > 0
 
 
+@needs_py3678
 def test_all_toxenv_current_env_skip_missing():
     result = tox("--current-env", "--skip-missing-interpreters", check=False)
     assert "InterpreterMismatch:" in result.stdout
@@ -101,6 +113,7 @@ def test_allenvs_print_deps_only():
     assert result.stdout == expected
 
 
+@needs_py3678
 def test_regular_run():
     result = tox()
     lines = sorted(result.stdout.splitlines()[:3])
@@ -113,6 +126,19 @@ def test_regular_run():
             sitelib = DOT_TOX / f"py3{y}/lib/python3.{y}/site-packages"
             assert sitelib.is_dir()
             assert len(list(sitelib.glob(f"{pkg}-*.dist-info"))) == 1
+
+
+def test_regular_run_native_toxenv():
+    result = tox("-e", NATIVE_TOXENV)
+    lines = sorted(result.stdout.splitlines()[:1])
+    assert f"/.tox/{NATIVE_TOXENV}/bin/python" in lines[0]
+    assert "congratulations" in result.stdout
+    for pkg in "py", "six", "test":
+        sitelib = (
+            DOT_TOX / f"{NATIVE_TOXENV}/lib/python3.{NATIVE_TOXENV[-1]}/site-packages"
+        )
+        assert sitelib.is_dir()
+        assert len(list(sitelib.glob(f"{pkg}-*.dist-info"))) == 1
 
 
 def test_regular_after_current_is_not_supported():

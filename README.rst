@@ -10,7 +10,7 @@ The ``tox-current-env`` plugin adds two options:
 ``tox --current-env``
    Runs the tox testenv's ``commands`` in the current Python environment
    (that is, the environment where ``tox`` is invoked from and installed in).
-   Unlike regular ``tox`` invocation, this installs no dependendencies declared in ``deps``.
+   Unlike regular ``tox`` invocation, this installs no dependencies declared in ``deps``.
    An attempt to run this with a Python version that doesn't match will fail
    (if ``tox`` is invoked from an Python 3.7 environment, any non 3.7 testenv will fail).
 

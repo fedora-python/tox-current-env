@@ -37,6 +37,37 @@ class InterpreterMismatch(tox.exception.InterpreterNotFound):
     """Interpreter version in current env does not match requested version"""
 
 
+def _python_activate_exists(venv):
+    python = venv.envconfig.get_envpython()
+    bindir = os.path.dirname(python)
+    activate = os.path.join(bindir, "activate")
+    return os.path.exists(python), os.path.exists(activate)
+
+
+def is_current_env_link(venv):
+    python, activate = _python_activate_exists(venv)
+    return python and not activate
+
+
+def is_proper_venv(venv):
+    python, activate = _python_activate_exists(venv)
+    return python and activate
+
+
+def unsupported_raise(config, venv):
+    if config.option.recreate:
+        return
+    regular = not (config.option.current_env or config.option.print_deps_only)
+    if regular and is_current_env_link(venv):
+        raise tox.exception.ConfigError(
+            "Regular tox run after --current-env or --print-deps-only tox run is not supported without --recreate (-r)."
+        )
+    elif config.option.current_env and is_proper_venv(venv):
+        raise tox.exception.ConfigError(
+            "--current-env after regular tox run is not supported without --recreate (-r)."
+        )
+
+
 @tox.hookimpl
 def tox_testenv_create(venv, action):
     """We create a fake virtualenv with just the symbolic link"""
@@ -68,37 +99,6 @@ def tox_testenv_create(venv, action):
         link = venv.envconfig.get_envpython()
         shutil.rmtree(os.path.dirname(os.path.dirname(link)), ignore_errors=True)
         return None  # let tox handle the rest
-
-
-def _python_activate_exists(venv):
-    python = venv.envconfig.get_envpython()
-    bindir = os.path.dirname(python)
-    activate = os.path.join(bindir, "activate")
-    return os.path.exists(python), os.path.exists(activate)
-
-
-def is_current_env_link(venv):
-    python, activate = _python_activate_exists(venv)
-    return python and not activate
-
-
-def is_proper_venv(venv):
-    python, activate = _python_activate_exists(venv)
-    return python and activate
-
-
-def unsupported_raise(config, venv):
-    if config.option.recreate:
-        return
-    regular = not (config.option.current_env or config.option.print_deps_only)
-    if regular and is_current_env_link(venv):
-        raise tox.exception.ConfigError(
-            "Regular tox run after --current-env or --print-deps-only tox run is not supported without --recreate (-r)."
-        )
-    elif config.option.current_env and is_proper_venv(venv):
-        raise tox.exception.ConfigError(
-            "--current-env after regular tox run is not supported without --recreate (-r)."
-        )
 
 
 @tox.hookimpl

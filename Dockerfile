@@ -2,7 +2,7 @@ FROM fedora
 
 RUN dnf -y install --setopt=install_weak_deps=false --setopt=tsflags=nodocs \
     --setopt=deltarpm=false --allowerasing --best --disablerepo=\*modular \
-    tox python36 python37 python38 && \
+    tox python36 python37 python38 git-core && \
     dnf -y --setopt=install_weak_deps=false --setopt=tsflags=nodocs --best\
     --setopt=deltarpm=false --allowerasing --disablerepo=\*modular update && \
     dnf clean all

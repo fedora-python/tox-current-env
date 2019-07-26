@@ -18,7 +18,7 @@ setup(
     package_dir={"": "src"},
     packages=find_packages("src"),
     entry_points={"tox": ["current-env = tox_current_env.hooks"]},
-    install_requires=["tox>=3.8.1"],
+    install_requires=["tox>=3.5"],
     python_requires=">=3.6",
     classifiers=[
         "Development Status :: 3 - Alpha",

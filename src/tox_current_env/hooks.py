@@ -54,6 +54,11 @@ def is_proper_venv(venv):
     return python and activate
 
 
+def is_any_env(venv):
+    python, activate = _python_activate_exists(venv)
+    return python
+
+
 def unsupported_raise(config, venv):
     if config.option.recreate:
         return
@@ -72,10 +77,19 @@ def unsupported_raise(config, venv):
 def tox_testenv_create(venv, action):
     """We create a fake virtualenv with just the symbolic link"""
     config = venv.envconfig.config
+    create_fake_env = check_version = config.option.current_env
     if config.option.print_deps_only:
-        # We don't need anything
-        return True
-    if config.option.current_env:
+        if is_any_env(venv):
+            # We don't need anything
+            return True
+        else:
+            # We need at least some kind of environment,
+            # or tox fails without a python command
+            # We fallback to --current-env behavior,
+            # because it's cheaper, faster and won't install stuff
+            create_fake_env = True
+    if check_version:
+        # With real --current-env, we check this, but not with --print-deps-only only
         version_info = venv.envconfig.python_info.version_info
         if version_info is None:
             raise tox.exception.InterpreterNotFound(venv.envconfig.basepython)
@@ -85,7 +99,7 @@ def tox_testenv_create(venv, action):
                 + f"    in current env: {tuple(sys.version_info)}\n"
                 + f"    requested: {version_info}"
             )
-
+    if create_fake_env:
         # Make sure the `python` command on path is sys.executable.
         # (We might have e.g. /usr/bin/python3, not `python`.)
         # Remove the rest of the virtualenv.

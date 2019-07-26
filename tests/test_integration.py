@@ -195,3 +195,24 @@ def test_regular_after_deps_only():
     result = tox("-e", NATIVE_TOXENV, "--print-deps-only", prune=False)
     assert "bin/python" not in result.stdout
     assert "six" in result.stdout
+
+
+def test_print_deps_without_python_command(tmp_path):
+    bin = tmp_path / "bin"
+    bin.mkdir()
+    tox_link = bin / "tox"
+    tox_path = shutil.which("tox")
+    tox_link.symlink_to(tox_path)
+    env = {**os.environ, "PATH": str(bin)}
+
+    result = tox("-e", NATIVE_TOXENV, "--print-deps-only", env=env)
+    expected = textwrap.dedent(
+        f"""
+        six
+        py
+        ___________________________________ summary ____________________________________
+          {NATIVE_TOXENV}: commands succeeded
+          congratulations :)
+        """
+    ).lstrip()
+    assert result.stdout == expected

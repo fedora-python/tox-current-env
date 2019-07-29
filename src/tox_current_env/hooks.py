@@ -116,6 +116,13 @@ def tox_testenv_create(venv, action):
 
 
 @tox.hookimpl
+def tox_package(session, venv):
+    """Fail early when unsupported"""
+    config = venv.envconfig.config
+    unsupported_raise(config, venv)
+
+
+@tox.hookimpl
 def tox_testenv_install_deps(venv, action):
     """We don't install anything"""
     config = venv.envconfig.config

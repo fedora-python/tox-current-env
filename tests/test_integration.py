@@ -156,6 +156,14 @@ def test_regular_after_first_deps_only_is_not_supported():
     assert result.returncode > 0
     assert "not supported" in result.stderr
 
+    # check that "test" was not installed to current environment
+    pip_freeze = subprocess.run(
+        (sys.executable, "-m", "pip", "freeze"),
+        encoding="utf-8",
+        stdout=subprocess.PIPE,
+    ).stdout.splitlines()
+    assert "test==0.0.0" not in pip_freeze
+
 
 def test_regular_recreate_after_current():
     result = tox("-e", NATIVE_TOXENV, "--current-env")

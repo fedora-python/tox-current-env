@@ -169,9 +169,9 @@ plugin, and running ``tox``), you will get undefined results
 Environment variables are not passed by default
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Although the plug name suggest that current environment is used for tests,
+Although the plugin name suggests that current environment is used for tests,
 it means the Python environment, not Shell.
-If you want the tests to see all environment variables of the calling Shell,
+If you want the tests to see environment variables of the calling process,
 use the ``TOX_TESTENV_PASSENV`` environment variable.
 Read `the documentation for passing environment variables to tox
 <https://tox.readthedocs.io/en/latest/config.html#conf-passenv>`_.

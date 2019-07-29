@@ -166,6 +166,17 @@ but in some cases (such as running ``tox --current-env``, uninstalling the
 plugin, and running ``tox``), you will get undefined results
 (such as installing packages from PyPI into your current environment).
 
+Environment variables are not passed by default
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Although the plugin name suggests that current environment is used for tests,
+it means the Python environment, not Shell.
+If you want the tests to see environment variables of the calling process,
+use the ``TOX_TESTENV_PASSENV`` environment variable.
+Read `the documentation for passing environment variables to tox
+<https://tox.readthedocs.io/en/latest/config.html#conf-passenv>`_.
+
+
 Other limitations and known bugs
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

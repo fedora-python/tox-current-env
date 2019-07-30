@@ -149,6 +149,22 @@ def test_regular_after_current_is_not_supported():
     assert "not supported" in result.stderr
 
 
+def test_regular_after_first_deps_only_is_not_supported():
+    result = tox("-e", NATIVE_TOXENV, "--print-deps-only")
+    assert result.stdout.splitlines()[0] == "six"
+    result = tox("-e", NATIVE_TOXENV, prune=False, check=False)
+    assert result.returncode > 0
+    assert "not supported" in result.stderr
+
+    # check that "test" was not installed to current environment
+    pip_freeze = subprocess.run(
+        (sys.executable, "-m", "pip", "freeze"),
+        encoding="utf-8",
+        stdout=subprocess.PIPE,
+    ).stdout.splitlines()
+    assert "test==0.0.0" not in pip_freeze
+
+
 def test_regular_recreate_after_current():
     result = tox("-e", NATIVE_TOXENV, "--current-env")
     assert result.stdout.splitlines()[0] == NATIVE_EXECUTABLE
@@ -184,14 +200,38 @@ def test_current_after_deps_only():
         assert result.stdout.splitlines()[0] == NATIVE_EXECUTABLE
 
 
-def test_regular_after_deps_only():
+def test_regular_recreate_after_deps_only():
     result = tox("-e", NATIVE_TOXENV, "--print-deps-only")
     assert "bin/python" not in result.stdout
     assert "six" in result.stdout
 
     result = tox("-re", NATIVE_TOXENV, prune=False)
     assert result.stdout.splitlines()[0] != NATIVE_EXECUTABLE
+    sitelib = DOT_TOX / f"{NATIVE_TOXENV}/lib/python3.{NATIVE_TOXENV[-1]}/site-packages"
+    assert sitelib.is_dir()
+    assert len(list(sitelib.glob("test-*.dist-info"))) == 1
 
     result = tox("-e", NATIVE_TOXENV, "--print-deps-only", prune=False)
     assert "bin/python" not in result.stdout
     assert "six" in result.stdout
+
+
+def test_print_deps_without_python_command(tmp_path):
+    bin = tmp_path / "bin"
+    bin.mkdir()
+    tox_link = bin / "tox"
+    tox_path = shutil.which("tox")
+    tox_link.symlink_to(tox_path)
+    env = {**os.environ, "PATH": str(bin)}
+
+    result = tox("-e", NATIVE_TOXENV, "--print-deps-only", env=env)
+    expected = textwrap.dedent(
+        f"""
+        six
+        py
+        ___________________________________ summary ____________________________________
+          {NATIVE_TOXENV}: commands succeeded
+          congratulations :)
+        """
+    ).lstrip()
+    assert result.stdout == expected

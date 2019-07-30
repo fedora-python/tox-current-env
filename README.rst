@@ -158,7 +158,8 @@ Don't mix current-env and regular tox runs
 
 Tox caches the virtualenvs it creates, and doesn't distinguish between
 regular virtualenvs and ``--current-env``.
-Don't mix ``tox --current-env`` runs and regular ``tox`` runs (without the flag).
+Don't mix ``tox --current-env`` or ``tox --print-deps-only`` runs
+and regular ``tox`` runs (without the flag).
 If you ever need to do this, use tox's ``--recreate/-r`` flag to clear the cache.
 
 The plugin should abort with a meaningful error message if this is detected,

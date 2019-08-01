@@ -69,10 +69,15 @@ def unsupported_raise(config, venv):
         return
     regular = not (config.option.current_env or config.option.print_deps_only)
     if regular and is_current_env_link(venv):
-        raise tox.exception.ConfigError(
-            "Looks like previous --current-env or --print-deps-only tox run didn't finish the cleanup. "
-            "Run tox run with --recreate (-r) or manually remove the environment in .tox."
-        )
+        if hasattr(tox.hookspecs, "tox_cleanup"):
+            raise tox.exception.ConfigError(
+                "Looks like previous --current-env or --print-deps-only tox run didn't finish the cleanup. "
+                "Run tox run with --recreate (-r) or manually remove the environment in .tox."
+            )
+        else:
+            raise tox.exception.ConfigError(
+                "Regular tox run after --current-env or --print-deps-only tox run is not supported without --recreate (-r)."
+            )
     elif config.option.current_env and is_proper_venv(venv):
         raise tox.exception.ConfigError(
             "--current-env after regular tox run is not supported without --recreate (-r)."
@@ -147,11 +152,13 @@ def tox_runtest(venv, redirect):
         return True
 
 
-@tox.hookimpl
-def tox_cleanup(session):
-    """Remove the fake virtualenv not to collide with regular tox
-    Collisions can happen anyway (when tox is killed forcefully before this happens)
-    Note that we don't remove real venvs, as recreating them is expensive"""
-    for venv in session.venv_dict.values():
-        if is_current_env_link(venv):
-            rm_venv(venv)
+if hasattr(tox.hookspecs, "tox_cleanup"):
+
+    @tox.hookimpl
+    def tox_cleanup(session):
+        """Remove the fake virtualenv not to collide with regular tox
+        Collisions can happen anyway (when tox is killed forcefully before this happens)
+        Note that we don't remove real venvs, as recreating them is expensive"""
+        for venv in session.venv_dict.values():
+            if is_current_env_link(venv):
+                rm_venv(venv)

@@ -6,6 +6,8 @@ import subprocess
 import sys
 import textwrap
 
+from packaging import version
+
 import pytest
 
 
@@ -37,11 +39,17 @@ def is_available(python):
     return True
 
 
+TOX_VERSION = version.parse(tox("--version").stdout.split(" ")[0])
+
 needs_py3678 = pytest.mark.skipif(
     not is_available("python3.6")
     or not is_available("python3.7")
     or not is_available("python3.8"),
     reason="This test needs all of python3.6, python3.7 and python3.8 to be available in $PATH",
+)
+
+needs_tox38 = pytest.mark.skipif(
+    TOX_VERSION < version.parse("3.8"), reason="This test needs at least tox 3.8"
 )
 
 
@@ -141,6 +149,7 @@ def test_regular_run_native_toxenv():
         assert len(list(sitelib.glob(f"{pkg}-*.dist-info"))) == 1
 
 
+@needs_tox38
 def test_regular_after_current_is_supported():
     result = tox("-e", NATIVE_TOXENV, "--current-env")
     assert result.stdout.splitlines()[0] == NATIVE_EXECUTABLE
@@ -160,6 +169,7 @@ def test_regular_after_killed_current_is_not_supported():
     assert "--recreate" in result.stderr
 
 
+@needs_tox38
 def test_regular_after_first_deps_only_is_supported():
     result = tox("-e", NATIVE_TOXENV, "--print-deps-only")
     assert result.stdout.splitlines()[0] == "six"

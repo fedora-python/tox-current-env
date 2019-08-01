@@ -14,10 +14,11 @@ The ``tox-current-env`` plugin adds two options:
    An attempt to run this with a Python version that doesn't match will fail
    (if ``tox`` is invoked from an Python 3.7 environment, any non 3.7 testenv will fail).
 
-``tox --print-deps-only``
+``tox --print-deps-only`` / ``--print-deps-to-file``
     Instead of running any ``commands``,
-    simply prints the declared dependencies in ``deps`` to the standard output.
+    simply prints the declared dependencies in ``deps`` to the standard output or specified file.
     This is useful for preparing the current environment for the above.
+    ``--print-deps-to-file`` will override the file, if it already exists.
 
 Invoking ``tox`` without any of the above options should behave as regular ``tox`` invocation without this plugin.
 Any deviation from this behavior is considered a bug.

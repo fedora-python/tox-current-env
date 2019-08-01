@@ -163,8 +163,9 @@ and regular ``tox`` runs (without the flag).
 If you ever need to do this, use tox's ``--recreate/-r`` flag to clear the cache.
 
 The plugin should abort with a meaningful error message if this is detected,
-but in some cases (such as running ``tox --current-env``, uninstalling the
-plugin, and running ``tox``), you will get undefined results
+but in some corner cases (such as running ``tox --current-env``,
+forcefully killing it before it finished, uninstalling the plugin,
+and running ``tox``), you will get undefined results
 (such as installing packages from PyPI into your current environment).
 
 Environment variables are not passed by default

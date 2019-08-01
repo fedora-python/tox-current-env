@@ -75,13 +75,19 @@ def is_any_env(venv):
     return python
 
 
+def rm_venv(venv):
+    link = venv.envconfig.get_envpython()
+    shutil.rmtree(os.path.dirname(os.path.dirname(link)), ignore_errors=True)
+
+
 def unsupported_raise(config, venv):
     if config.option.recreate:
         return
     regular = not (config.option.current_env or config.option.print_deps_only)
     if regular and is_current_env_link(venv):
         raise tox.exception.ConfigError(
-            "Regular tox run after --current-env or --print-deps-only tox run is not supported without --recreate (-r)."
+            "Looks like previous --current-env or --print-deps-only tox run didn't finish the cleanup. "
+            "Run tox run with --recreate (-r) or manually remove the environment in .tox."
         )
     elif config.option.current_env and is_proper_venv(venv):
         raise tox.exception.ConfigError(
@@ -126,8 +132,7 @@ def tox_testenv_create(venv, action):
         os.symlink(target, link)
         return True
     else:
-        link = venv.envconfig.get_envpython()
-        shutil.rmtree(os.path.dirname(os.path.dirname(link)), ignore_errors=True)
+        rm_venv(venv)
         return None  # let tox handle the rest
 
 
@@ -159,3 +164,13 @@ def tox_runtest(venv, redirect):
     if config.option.print_deps_only:
         print(*venv.get_resolved_dependencies(), sep="\n")
         return True
+
+
+@tox.hookimpl
+def tox_cleanup(session):
+    """Remove the fake virtualenv not to collide with regular tox
+    Collisions can happen anyway (when tox is killed forcefully before this happens)
+    Note that we don't remove real venvs, as recreating them is expensive"""
+    for venv in session.venv_dict.values():
+        if is_current_env_link(venv):
+            rm_venv(venv)

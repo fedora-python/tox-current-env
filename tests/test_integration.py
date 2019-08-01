@@ -195,20 +195,32 @@ def test_regular_run_native_toxenv():
         assert len(list(sitelib.glob(f"{pkg}-*.dist-info"))) == 1
 
 
-def test_regular_after_current_is_not_supported():
+def test_regular_after_current_is_supported():
     result = tox("-e", NATIVE_TOXENV, "--current-env")
     assert result.stdout.splitlines()[0] == NATIVE_EXECUTABLE
+    result = tox("-e", NATIVE_TOXENV, prune=False)
+    assert f"/.tox/{NATIVE_TOXENV}/bin/python" in result.stdout
+    assert "--recreate" not in result.stderr
+
+
+def test_regular_after_killed_current_is_not_supported():
+    # fake broken tox run
+    shutil.rmtree(DOT_TOX, ignore_errors=True)
+    (DOT_TOX / NATIVE_TOXENV / "bin").mkdir(parents=True)
+    (DOT_TOX / NATIVE_TOXENV / "bin" / "python").symlink_to(NATIVE_EXECUTABLE)
+
     result = tox("-e", NATIVE_TOXENV, prune=False, check=False)
     assert result.returncode > 0
-    assert "not supported" in result.stderr
+    assert "--recreate" in result.stderr
 
 
-def test_regular_after_first_deps_only_is_not_supported():
+def test_regular_after_first_deps_only_is_supported():
     result = tox("-e", NATIVE_TOXENV, "--print-deps-only")
     assert result.stdout.splitlines()[0] == "six"
-    result = tox("-e", NATIVE_TOXENV, prune=False, check=False)
-    assert result.returncode > 0
-    assert "not supported" in result.stderr
+    result = tox("-e", NATIVE_TOXENV, prune=False)
+    lines = sorted(result.stdout.splitlines()[:1])
+    assert "--recreate" not in result.stderr
+    assert f"/.tox/{NATIVE_TOXENV}/bin/python" in lines[0]
 
     # check that "test" was not installed to current environment
     pip_freeze = subprocess.run(
@@ -225,6 +237,7 @@ def test_regular_recreate_after_current():
     result = tox("-re", NATIVE_TOXENV, prune=False)
     assert f"/.tox/{NATIVE_TOXENV}/bin/python" in result.stdout
     assert "not supported" not in result.stderr
+    assert "--recreate" not in result.stderr
 
 
 def test_current_after_regular_is_not_supported():

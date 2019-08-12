@@ -154,6 +154,19 @@ def test_allenvs_print_deps_to_existing_file(tmp_path):
     assert "py" in lines
 
 
+def test_print_deps_only_print_deps_to_file_are_mutually_exclusive():
+    result = tox(
+        "-e",
+        NATIVE_TOXENV,
+        "--print-deps-only",
+        "--print-deps-to-file",
+        "foobar",
+        check=False,
+    )
+    assert result.returncode > 0
+    assert "cannot be used together" in result.stderr
+
+
 @needs_py3678
 def test_regular_run():
     result = tox()

@@ -18,7 +18,7 @@ def tox_addoption(parser):
         action="store_true",
         dest="print_deps_only",
         default=False,
-        help="Don't run tests, only print the dependencies",
+        help="Don't run tests, only print the dependencies to stdout",
     )
     parser.add_argument(
         "--print-deps-to-file",
@@ -33,6 +33,10 @@ def tox_addoption(parser):
 @tox.hookimpl
 def tox_configure(config):
     """Stores options in the config. Makes all commands external and skips sdist"""
+    if config.option.print_deps_only and config.option.print_deps_path:
+        raise tox.exception.ConfigError(
+            "--print-deps-only cannot be used together with --print-deps-to-file"
+        )
     if config.option.print_deps_path is not None:
         config.option.print_deps_only = True
         with open(config.option.print_deps_path, "w", encoding="utf-8") as f:

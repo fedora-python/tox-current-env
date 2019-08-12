@@ -18,13 +18,29 @@ def tox_addoption(parser):
         action="store_true",
         dest="print_deps_only",
         default=False,
-        help="Don't run tests, only print the dependencies",
+        help="Don't run tests, only print the dependencies to stdout",
+    )
+    parser.add_argument(
+        "--print-deps-to-file",
+        action="store",
+        dest="print_deps_path",
+        metavar="PATH",
+        default=None,
+        help="Like --print-deps-only, but to a file. Overwrites the file if it exists.",
     )
 
 
 @tox.hookimpl
 def tox_configure(config):
     """Stores options in the config. Makes all commands external and skips sdist"""
+    if config.option.print_deps_only and config.option.print_deps_path:
+        raise tox.exception.ConfigError(
+            "--print-deps-only cannot be used together with --print-deps-to-file"
+        )
+    if config.option.print_deps_path is not None:
+        config.option.print_deps_only = True
+        with open(config.option.print_deps_path, "w", encoding="utf-8") as f:
+            f.write("")
     if config.option.current_env or config.option.print_deps_only:
         config.skipsdist = True
         for testenv in config.envconfigs:
@@ -136,7 +152,10 @@ def tox_runtest(venv, redirect):
     """If --print-deps-only, prints deps instead of running tests"""
     config = venv.envconfig.config
     unsupported_raise(config, venv)
+    if config.option.print_deps_path is not None:
+        with open(config.option.print_deps_path, "a", encoding="utf-8") as f:
+            print(*venv.get_resolved_dependencies(), sep="\n", file=f)
+        return True
     if config.option.print_deps_only:
-        for dependency in venv.get_resolved_dependencies():
-            print(dependency)
+        print(*venv.get_resolved_dependencies(), sep="\n")
         return True

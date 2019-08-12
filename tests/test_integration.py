@@ -113,6 +113,60 @@ def test_allenvs_print_deps_only():
     assert result.stdout == expected
 
 
+@pytest.mark.parametrize("toxenv", ["py36", "py37", "py38"])
+def test_print_deps_to_file(toxenv, tmp_path):
+    depspath = tmp_path / "deps"
+    result = tox("-e", toxenv, "--print-deps-to-file", str(depspath))
+    assert depspath.read_text().splitlines() == ["six", "py"]
+    expected = textwrap.dedent(
+        f"""
+        ___________________________________ summary ____________________________________
+          {toxenv}: commands succeeded
+          congratulations :)
+        """
+    ).lstrip()
+    assert result.stdout == expected
+
+
+def test_allenvs_print_deps_to_file(tmp_path):
+    depspath = tmp_path / "deps"
+    result = tox("--print-deps-to-file", str(depspath))
+    assert depspath.read_text().splitlines() == ["six", "py"] * 3
+    expected = textwrap.dedent(
+        """
+        ___________________________________ summary ____________________________________
+          py36: commands succeeded
+          py37: commands succeeded
+          py38: commands succeeded
+          congratulations :)
+        """
+    ).lstrip()
+    assert result.stdout == expected
+
+
+def test_allenvs_print_deps_to_existing_file(tmp_path):
+    depspath = tmp_path / "deps"
+    depspath.write_text("nada")
+    result = tox("--print-deps-to-file", str(depspath))
+    lines = depspath.read_text().splitlines()
+    assert "nada" not in lines
+    assert "six" in lines
+    assert "py" in lines
+
+
+def test_print_deps_only_print_deps_to_file_are_mutually_exclusive():
+    result = tox(
+        "-e",
+        NATIVE_TOXENV,
+        "--print-deps-only",
+        "--print-deps-to-file",
+        "foobar",
+        check=False,
+    )
+    assert result.returncode > 0
+    assert "cannot be used together" in result.stderr
+
+
 @needs_py3678
 def test_regular_run():
     result = tox()

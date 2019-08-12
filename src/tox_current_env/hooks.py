@@ -26,7 +26,7 @@ def tox_addoption(parser):
         dest="print_deps_path",
         metavar="PATH",
         default=None,
-        help="Like --print-deps-only, but to a file (overrides the file)",
+        help="Like --print-deps-only, but to a file. Overwrites the file if it exists.",
     )
 
 

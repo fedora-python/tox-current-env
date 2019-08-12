@@ -18,7 +18,7 @@ The ``tox-current-env`` plugin adds two options:
     Instead of running any ``commands``,
     simply prints the declared dependencies in ``deps`` to the standard output or specified file.
     This is useful for preparing the current environment for the above.
-    ``--print-deps-to-file`` will override the file, if it already exists.
+    ``--print-deps-to-file`` will overwrite the file if it already exists.
 
 Invoking ``tox`` without any of the above options should behave as regular ``tox`` invocation without this plugin.
 Any deviation from this behavior is considered a bug.

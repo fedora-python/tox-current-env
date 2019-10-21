@@ -6,6 +6,7 @@ services:
 env:
   - FEDORA=29
   - FEDORA=30
+  - FEDORA=31
   - FEDORA=rawhide
 
 install:

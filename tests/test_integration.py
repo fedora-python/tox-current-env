@@ -13,18 +13,25 @@ import pytest
 
 NATIVE_TOXENV = f"py{sys.version_info[0]}{sys.version_info[1]}"
 NATIVE_EXECUTABLE = str(pathlib.Path(sys.executable).resolve())
-TOX_INI = pathlib.Path(__file__).parent / "tox.ini"
-DOT_TOX = pathlib.Path(__file__).parent / ".tox"
+FIXTURES_DIR = pathlib.Path(__file__).parent / "fixtures"
+DOT_TOX = pathlib.Path("./.tox")
 
 
-def tox(*args, prune=True, **kwargs):
-    if prune:
-        shutil.rmtree(DOT_TOX, ignore_errors=True)
+@pytest.fixture(autouse=True)
+def projdir(tmp_path, monkeypatch):
+    pwd = tmp_path / "projdir"
+    pwd.mkdir()
+    for fname in "tox.ini", "setup.py":
+        shutil.copy(FIXTURES_DIR / fname, pwd)
+    monkeypatch.chdir(pwd)
+
+
+def tox(*args, **kwargs):
     kwargs.setdefault("encoding", "utf-8")
     kwargs.setdefault("stdout", subprocess.PIPE)
     kwargs.setdefault("stderr", subprocess.PIPE)
     kwargs.setdefault("check", True)
-    cp = subprocess.run((sys.executable, "-m", "tox", "-qc", TOX_INI) + args, **kwargs)
+    cp = subprocess.run((sys.executable, "-m", "tox", "-q") + args, **kwargs)
     print(cp.stdout, file=sys.stdout)
     print(cp.stderr, file=sys.stderr)
     return cp
@@ -207,7 +214,7 @@ def test_regular_run_native_toxenv():
 def test_regular_after_current_is_supported():
     result = tox("-e", NATIVE_TOXENV, "--current-env")
     assert result.stdout.splitlines()[0] == NATIVE_EXECUTABLE
-    result = tox("-e", NATIVE_TOXENV, prune=False)
+    result = tox("-e", NATIVE_TOXENV)
     assert f"/.tox/{NATIVE_TOXENV}/bin/python" in result.stdout
     assert "--recreate" not in result.stderr
 
@@ -218,7 +225,7 @@ def test_regular_after_killed_current_is_not_supported():
     (DOT_TOX / NATIVE_TOXENV / "bin").mkdir(parents=True)
     (DOT_TOX / NATIVE_TOXENV / "bin" / "python").symlink_to(NATIVE_EXECUTABLE)
 
-    result = tox("-e", NATIVE_TOXENV, prune=False, check=False)
+    result = tox("-e", NATIVE_TOXENV, check=False)
     assert result.returncode > 0
     assert "--recreate" in result.stderr
 
@@ -227,7 +234,7 @@ def test_regular_after_killed_current_is_not_supported():
 def test_regular_after_first_deps_only_is_supported():
     result = tox("-e", NATIVE_TOXENV, "--print-deps-only")
     assert result.stdout.splitlines()[0] == "six"
-    result = tox("-e", NATIVE_TOXENV, prune=False)
+    result = tox("-e", NATIVE_TOXENV)
     lines = sorted(result.stdout.splitlines()[:1])
     assert "--recreate" not in result.stderr
     assert f"/.tox/{NATIVE_TOXENV}/bin/python" in lines[0]
@@ -244,7 +251,7 @@ def test_regular_after_first_deps_only_is_supported():
 def test_regular_recreate_after_current():
     result = tox("-e", NATIVE_TOXENV, "--current-env")
     assert result.stdout.splitlines()[0] == NATIVE_EXECUTABLE
-    result = tox("-re", NATIVE_TOXENV, prune=False)
+    result = tox("-re", NATIVE_TOXENV)
     assert f"/.tox/{NATIVE_TOXENV}/bin/python" in result.stdout
     assert "not supported" not in result.stderr
     assert "--recreate" not in result.stderr
@@ -253,7 +260,7 @@ def test_regular_recreate_after_current():
 def test_current_after_regular_is_not_supported():
     result = tox("-e", NATIVE_TOXENV)
     assert f"/.tox/{NATIVE_TOXENV}/bin/python" in result.stdout
-    result = tox("-e", NATIVE_TOXENV, "--current-env", prune=False, check=False)
+    result = tox("-e", NATIVE_TOXENV, "--current-env", check=False)
     assert result.returncode > 0
     assert "not supported" in result.stderr
 
@@ -261,19 +268,17 @@ def test_current_after_regular_is_not_supported():
 def test_current_recreate_after_regular():
     result = tox("-e", NATIVE_TOXENV)
     assert f"/.tox/{NATIVE_TOXENV}/bin/python" in result.stdout
-    result = tox("-re", NATIVE_TOXENV, "--current-env", prune=False)
+    result = tox("-re", NATIVE_TOXENV, "--current-env")
     assert result.stdout.splitlines()[0] == NATIVE_EXECUTABLE
 
 
 def test_current_after_deps_only():
     # this is quite fast, so we can do it several times
-    first = True
     for _ in range(3):
-        result = tox("-e", NATIVE_TOXENV, "--print-deps-only", prune=first)
-        first = False
+        result = tox("-e", NATIVE_TOXENV, "--print-deps-only")
         assert "bin/python" not in result.stdout
         assert "six" in result.stdout
-        result = tox("-re", NATIVE_TOXENV, "--current-env", prune=False)
+        result = tox("-re", NATIVE_TOXENV, "--current-env")
         assert result.stdout.splitlines()[0] == NATIVE_EXECUTABLE
 
 
@@ -282,13 +287,13 @@ def test_regular_recreate_after_deps_only():
     assert "bin/python" not in result.stdout
     assert "six" in result.stdout
 
-    result = tox("-re", NATIVE_TOXENV, prune=False)
+    result = tox("-re", NATIVE_TOXENV)
     assert result.stdout.splitlines()[0] != NATIVE_EXECUTABLE
     sitelib = DOT_TOX / f"{NATIVE_TOXENV}/lib/python3.{NATIVE_TOXENV[-1]}/site-packages"
     assert sitelib.is_dir()
     assert len(list(sitelib.glob("test-*.dist-info"))) == 1
 
-    result = tox("-e", NATIVE_TOXENV, "--print-deps-only", prune=False)
+    result = tox("-e", NATIVE_TOXENV, "--print-deps-only")
     assert "bin/python" not in result.stdout
     assert "six" in result.stdout
 

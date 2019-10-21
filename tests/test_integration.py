@@ -240,11 +240,13 @@ def test_regular_after_first_deps_only_is_supported():
     assert f"/.tox/{NATIVE_TOXENV}/bin/python" in lines[0]
 
     # check that "test" was not installed to current environment
+    shutil.rmtree("./test.egg-info")
     pip_freeze = subprocess.run(
         (sys.executable, "-m", "pip", "freeze"),
         encoding="utf-8",
         stdout=subprocess.PIPE,
     ).stdout.splitlines()
+    # XXX when this fails, recreate your current environment
     assert "test==0.0.0" not in pip_freeze
 
 

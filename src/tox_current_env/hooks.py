@@ -137,7 +137,7 @@ def tox_testenv_create(venv, action):
         os.makedirs(os.path.dirname(link))
         if sys.platform == "win32":
             # Avoid requiring admin rights on Windows
-            subprocess.check_call('mklink /J "{link}" "{target}"', shell=True)
+            subprocess.check_call(f'mklink /J "{link}" "{target}"', shell=True)
         else:
             os.symlink(target, link)
         # prevent tox from creating the venv

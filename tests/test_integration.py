@@ -13,6 +13,8 @@ import pytest
 
 NATIVE_TOXENV = f"py{sys.version_info[0]}{sys.version_info[1]}"
 NATIVE_EXECUTABLE = str(pathlib.Path(sys.executable).resolve())
+NATIVE_EXEC_PREFIX = str(pathlib.Path(sys.exec_prefix).resolve())
+NATIVE_EXEC_PREFIX_MSG = f"{NATIVE_EXEC_PREFIX} is the exec_prefix"
 FIXTURES_DIR = pathlib.Path(__file__).parent / "fixtures"
 DOT_TOX = pathlib.Path("./.tox")
 
@@ -62,14 +64,14 @@ needs_tox38 = pytest.mark.skipif(
 
 def test_native_toxenv_current_env():
     result = tox("-e", NATIVE_TOXENV, "--current-env")
-    assert result.stdout.splitlines()[0] == NATIVE_EXECUTABLE
+    assert result.stdout.splitlines()[0] == NATIVE_EXEC_PREFIX_MSG
     assert not (DOT_TOX / NATIVE_TOXENV / "lib").is_dir()
 
 
 @needs_py3678
 def test_all_toxenv_current_env():
     result = tox("--current-env", check=False)
-    assert NATIVE_EXECUTABLE in result.stdout.splitlines()
+    assert NATIVE_EXEC_PREFIX_MSG in result.stdout.splitlines()
     assert result.stdout.count("InterpreterMismatch:") >= 2
     assert result.returncode > 0
 
@@ -186,9 +188,9 @@ def test_print_deps_only_print_deps_to_file_are_mutually_exclusive():
 def test_regular_run():
     result = tox()
     lines = sorted(result.stdout.splitlines()[:3])
-    assert "/.tox/py36/bin/python" in lines[0]
-    assert "/.tox/py37/bin/python" in lines[1]
-    assert "/.tox/py38/bin/python" in lines[2]
+    assert "/.tox/py36 is the exec_prefix" in lines[0]
+    assert "/.tox/py37 is the exec_prefix" in lines[1]
+    assert "/.tox/py38 is the exec_prefix" in lines[2]
     assert "congratulations" in result.stdout
     for y in 6, 7, 8:
         for pkg in "py", "six", "test":
@@ -200,7 +202,7 @@ def test_regular_run():
 def test_regular_run_native_toxenv():
     result = tox("-e", NATIVE_TOXENV)
     lines = sorted(result.stdout.splitlines()[:1])
-    assert f"/.tox/{NATIVE_TOXENV}/bin/python" in lines[0]
+    assert f"/.tox/{NATIVE_TOXENV} is the exec_prefix" in lines[0]
     assert "congratulations" in result.stdout
     for pkg in "py", "six", "test":
         sitelib = (
@@ -213,9 +215,9 @@ def test_regular_run_native_toxenv():
 @needs_tox38
 def test_regular_after_current_is_supported():
     result = tox("-e", NATIVE_TOXENV, "--current-env")
-    assert result.stdout.splitlines()[0] == NATIVE_EXECUTABLE
+    assert result.stdout.splitlines()[0] == NATIVE_EXEC_PREFIX_MSG
     result = tox("-e", NATIVE_TOXENV)
-    assert f"/.tox/{NATIVE_TOXENV}/bin/python" in result.stdout
+    assert f"/.tox/{NATIVE_TOXENV} is the exec_prefix" in result.stdout
     assert "--recreate" not in result.stderr
 
 
@@ -237,7 +239,7 @@ def test_regular_after_first_deps_only_is_supported():
     result = tox("-e", NATIVE_TOXENV)
     lines = sorted(result.stdout.splitlines()[:1])
     assert "--recreate" not in result.stderr
-    assert f"/.tox/{NATIVE_TOXENV}/bin/python" in lines[0]
+    assert f"/.tox/{NATIVE_TOXENV} is the exec_prefix" in lines[0]
 
     # check that "test" was not installed to current environment
     shutil.rmtree("./test.egg-info")
@@ -252,16 +254,16 @@ def test_regular_after_first_deps_only_is_supported():
 
 def test_regular_recreate_after_current():
     result = tox("-e", NATIVE_TOXENV, "--current-env")
-    assert result.stdout.splitlines()[0] == NATIVE_EXECUTABLE
+    assert result.stdout.splitlines()[0] == NATIVE_EXEC_PREFIX_MSG
     result = tox("-re", NATIVE_TOXENV)
-    assert f"/.tox/{NATIVE_TOXENV}/bin/python" in result.stdout
+    assert f"/.tox/{NATIVE_TOXENV} is the exec_prefix" in result.stdout
     assert "not supported" not in result.stderr
     assert "--recreate" not in result.stderr
 
 
 def test_current_after_regular_is_not_supported():
     result = tox("-e", NATIVE_TOXENV)
-    assert f"/.tox/{NATIVE_TOXENV}/bin/python" in result.stdout
+    assert f"/.tox/{NATIVE_TOXENV} is the exec_prefix" in result.stdout
     result = tox("-e", NATIVE_TOXENV, "--current-env", check=False)
     assert result.returncode > 0
     assert "not supported" in result.stderr
@@ -269,9 +271,9 @@ def test_current_after_regular_is_not_supported():
 
 def test_current_recreate_after_regular():
     result = tox("-e", NATIVE_TOXENV)
-    assert f"/.tox/{NATIVE_TOXENV}/bin/python" in result.stdout
+    assert f"/.tox/{NATIVE_TOXENV} is the exec_prefix" in result.stdout
     result = tox("-re", NATIVE_TOXENV, "--current-env")
-    assert result.stdout.splitlines()[0] == NATIVE_EXECUTABLE
+    assert result.stdout.splitlines()[0] == NATIVE_EXEC_PREFIX_MSG
 
 
 def test_current_after_deps_only():
@@ -281,7 +283,7 @@ def test_current_after_deps_only():
         assert "bin/python" not in result.stdout
         assert "six" in result.stdout
         result = tox("-re", NATIVE_TOXENV, "--current-env")
-        assert result.stdout.splitlines()[0] == NATIVE_EXECUTABLE
+        assert result.stdout.splitlines()[0] == NATIVE_EXEC_PREFIX_MSG
 
 
 def test_regular_recreate_after_deps_only():
@@ -290,7 +292,7 @@ def test_regular_recreate_after_deps_only():
     assert "six" in result.stdout
 
     result = tox("-re", NATIVE_TOXENV)
-    assert result.stdout.splitlines()[0] != NATIVE_EXECUTABLE
+    assert result.stdout.splitlines()[0] != NATIVE_EXEC_PREFIX_MSG
     sitelib = DOT_TOX / f"{NATIVE_TOXENV}/lib/python3.{NATIVE_TOXENV[-1]}/site-packages"
     assert sitelib.is_dir()
     assert len(list(sitelib.glob("test-*.dist-info"))) == 1

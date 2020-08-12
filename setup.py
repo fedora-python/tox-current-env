@@ -18,7 +18,13 @@ setup(
     package_dir={"": "src"},
     packages=find_packages("src"),
     entry_points={"tox": ["current-env = tox_current_env.hooks"]},
-    install_requires=["tox>=3.5"],
+    install_requires=[
+        # We support tox 3.13 only to support Fedora 31.
+        # Fedora's tox 3.13 is patched to support Python 3.8 and 3.9,
+        # but the one downloaded from PyPI isn't and it doesn't work properly.
+        "tox>=3.15; python_version >= '3.8'",
+        "tox>=3.13; python_version < '3.8'",
+    ],
     python_requires=">=3.6",
     classifiers=[
         "Development Status :: 3 - Alpha",

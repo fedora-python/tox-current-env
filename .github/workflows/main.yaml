@@ -19,10 +19,10 @@ jobs:
         tox_env:
         # This information is repeated in tox.ini
         # (see https://github.com/fedora-python/tox-github-action/issues/8)
-        - py36-tox35
-        - py37-tox35
-        - py38-tox35
-        - py39-tox35
+        - py36-tox313
+        - py37-tox313
+        - py38-tox315
+        - py39-tox315
 
         - py36-toxrelease
         - py37-toxrelease

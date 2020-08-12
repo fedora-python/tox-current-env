@@ -177,13 +177,11 @@ def tox_runtest(venv, redirect):
         return True
 
 
-if hasattr(tox.hookspecs, "tox_cleanup"):
-
-    @tox.hookimpl
-    def tox_cleanup(session):
-        """Remove the fake virtualenv not to collide with regular tox
-        Collisions can happen anyway (when tox is killed forcefully before this happens)
-        Note that we don't remove real venvs, as recreating them is expensive"""
-        for venv in session.venv_dict.values():
-            if is_current_env_link(venv):
-                rm_venv(venv)
+@tox.hookimpl
+def tox_cleanup(session):
+    """Remove the fake virtualenv not to collide with regular tox
+    Collisions can happen anyway (when tox is killed forcefully before this happens)
+    Note that we don't remove real venvs, as recreating them is expensive"""
+    for venv in session.venv_dict.values():
+        if is_current_env_link(venv):
+            rm_venv(venv)

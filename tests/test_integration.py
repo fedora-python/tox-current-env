@@ -49,8 +49,8 @@ def is_available(python):
 
 
 TOX_VERSION = version.parse(tox("--version").stdout.split(" ")[0])
-TOX38 = TOX_VERSION >= version.parse("3.8")
-needs_tox38 = pytest.mark.skipif(not TOX38, reason="This test needs at least tox 3.8")
+TOX313 = TOX_VERSION < version.parse("3.14")
+
 
 needs_py36789 = pytest.mark.skipif(
     not all((is_available(f"python3.{x}") for x in range(6, 10))),
@@ -195,8 +195,10 @@ def test_regular_run():
     assert "/.tox/py39 is the exec_prefix" in lines[3]
     assert "congratulations" in result.stdout
     for y in 6, 7, 8, 9:
-        if y == 9 and not TOX38:
-            # tox 3.5 cannot handle Python 3.9 venvs
+        if TOX313 and y > 8:
+            # there is a bug in tox < 3.14,
+            # it creates venv with /usr/bin/python3 if the version is unknown
+            # See https://src.fedoraproject.org/rpms/python-tox/pull-request/15
             continue
         for pkg in "py", "six", "test":
             sitelib = DOT_TOX / f"py3{y}/lib/python3.{y}/site-packages"
@@ -217,7 +219,6 @@ def test_regular_run_native_toxenv():
         assert len(list(sitelib.glob(f"{pkg}-*.dist-info"))) == 1
 
 
-@needs_tox38
 def test_regular_after_current_is_supported():
     result = tox("-e", NATIVE_TOXENV, "--current-env")
     assert result.stdout.splitlines()[0] == NATIVE_EXEC_PREFIX_MSG
@@ -237,7 +238,6 @@ def test_regular_after_killed_current_is_not_supported():
     assert "--recreate" in result.stderr
 
 
-@needs_tox38
 def test_regular_after_first_deps_only_is_supported():
     result = tox("-e", NATIVE_TOXENV, "--print-deps-only")
     assert result.stdout.splitlines()[0] == "six"

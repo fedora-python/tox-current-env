@@ -49,17 +49,14 @@ def is_available(python):
 
 
 TOX_VERSION = version.parse(tox("--version").stdout.split(" ")[0])
+TOX38 = TOX_VERSION >= version.parse("3.8")
+needs_tox38 = pytest.mark.skipif(not TOX38, reason="This test needs at least tox 3.8")
 
-needs_py3678 = pytest.mark.skipif(
-    not is_available("python3.6")
-    or not is_available("python3.7")
-    or not is_available("python3.8"),
-    reason="This test needs all of python3.6, python3.7 and python3.8 to be available in $PATH",
+needs_py36789 = pytest.mark.skipif(
+    not all((is_available(f"python3.{x}") for x in range(6, 10))),
+    reason="This test needs python3.6, 3.7, 3.8 and 3.9 available in $PATH",
 )
 
-needs_tox38 = pytest.mark.skipif(
-    TOX_VERSION < version.parse("3.8"), reason="This test needs at least tox 3.8"
-)
 
 
 def test_native_toxenv_current_env():
@@ -68,7 +65,7 @@ def test_native_toxenv_current_env():
     assert not (DOT_TOX / NATIVE_TOXENV / "lib").is_dir()
 
 
-@needs_py3678
+@needs_py36789
 def test_all_toxenv_current_env():
     result = tox("--current-env", check=False)
     assert NATIVE_EXEC_PREFIX_MSG in result.stdout.splitlines()
@@ -87,7 +84,7 @@ def test_missing_toxenv_current_env(python):
     assert result.returncode > 0
 
 
-@needs_py3678
+@needs_py36789
 def test_all_toxenv_current_env_skip_missing():
     result = tox("--current-env", "--skip-missing-interpreters", check=False)
     assert "InterpreterMismatch:" in result.stdout
@@ -95,7 +92,7 @@ def test_all_toxenv_current_env_skip_missing():
     assert result.returncode == 0
 
 
-@pytest.mark.parametrize("toxenv", ["py36", "py37", "py38"])
+@pytest.mark.parametrize("toxenv", ["py36", "py37", "py38", "py39"])
 def test_print_deps_only(toxenv):
     result = tox("-e", toxenv, "--print-deps-only")
     expected = textwrap.dedent(
@@ -120,17 +117,20 @@ def test_allenvs_print_deps_only():
         py
         six
         py
+        six
+        py
         ___________________________________ summary ____________________________________
           py36: commands succeeded
           py37: commands succeeded
           py38: commands succeeded
+          py39: commands succeeded
           congratulations :)
         """
     ).lstrip()
     assert result.stdout == expected
 
 
-@pytest.mark.parametrize("toxenv", ["py36", "py37", "py38"])
+@pytest.mark.parametrize("toxenv", ["py36", "py37", "py38", "py39"])
 def test_print_deps_to_file(toxenv, tmp_path):
     depspath = tmp_path / "deps"
     result = tox("-e", toxenv, "--print-deps-to-file", str(depspath))
@@ -148,13 +148,14 @@ def test_print_deps_to_file(toxenv, tmp_path):
 def test_allenvs_print_deps_to_file(tmp_path):
     depspath = tmp_path / "deps"
     result = tox("--print-deps-to-file", str(depspath))
-    assert depspath.read_text().splitlines() == ["six", "py"] * 3
+    assert depspath.read_text().splitlines() == ["six", "py"] * 4
     expected = textwrap.dedent(
         """
         ___________________________________ summary ____________________________________
           py36: commands succeeded
           py37: commands succeeded
           py38: commands succeeded
+          py39: commands succeeded
           congratulations :)
         """
     ).lstrip()
@@ -184,15 +185,19 @@ def test_print_deps_only_print_deps_to_file_are_mutually_exclusive():
     assert "cannot be used together" in result.stderr
 
 
-@needs_py3678
+@needs_py36789
 def test_regular_run():
     result = tox()
-    lines = sorted(result.stdout.splitlines()[:3])
+    lines = sorted(result.stdout.splitlines()[:4])
     assert "/.tox/py36 is the exec_prefix" in lines[0]
     assert "/.tox/py37 is the exec_prefix" in lines[1]
     assert "/.tox/py38 is the exec_prefix" in lines[2]
+    assert "/.tox/py39 is the exec_prefix" in lines[3]
     assert "congratulations" in result.stdout
-    for y in 6, 7, 8:
+    for y in 6, 7, 8, 9:
+        if y == 9 and not TOX38:
+            # tox 3.5 cannot handle Python 3.9 venvs
+            continue
         for pkg in "py", "six", "test":
             sitelib = DOT_TOX / f"py3{y}/lib/python3.{y}/site-packages"
             assert sitelib.is_dir()

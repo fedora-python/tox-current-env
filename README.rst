@@ -214,8 +214,8 @@ or send Pull Requests.
 Tests
 ~~~~~
 
-In order to run the tests, you'll need ``tox`` and Python 3.6, 3.7 and 3.8 installed.
-The integration tests assume all three are available.
+In order to run the tests, you'll need ``tox`` and Python 3.6, 3.7, 3.8 and 3.9 installed.
+The integration tests assume all four are available.
 On Fedora, you just need to ``dnf install tox``.
 
 Run ``tox`` to invoke the tests.

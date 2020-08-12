@@ -22,14 +22,17 @@ jobs:
         - py36-tox35
         - py37-tox35
         - py38-tox35
+        - py39-tox35
 
         - py36-toxrelease
         - py37-toxrelease
         - py38-toxrelease
+        - py39-toxrelease
 
         - py36-toxmaster
         - py37-toxmaster
         - py38-toxmaster
+        - py39-toxmaster
 
     # Use GitHub's Linux Docker host
     runs-on: ubuntu-latest

@@ -1,0 +1,35 @@
+on:
+  push:
+  pull_request:
+
+name: Run Tox tests
+
+jobs:
+  tox_test:
+    name: Tox test
+    steps:
+    - uses: actions/checkout@v2
+    - name: Run Tox tests
+      id: test
+      uses: fedora-python/tox-github-action@master
+      with:
+        tox_env: ${{ matrix.tox_env }}
+    strategy:
+      matrix:
+        tox_env:
+        # This information is repeated in tox.ini
+        # (see https://github.com/fedora-python/tox-github-action/issues/8)
+        - py36-tox35
+        - py37-tox35
+        - py38-tox35
+
+        - py36-toxrelease
+        - py37-toxrelease
+        - py38-toxrelease
+
+        - py36-toxmaster
+        - py37-toxmaster
+        - py38-toxmaster
+
+    # Use GitHub's Linux Docker host
+    runs-on: ubuntu-latest

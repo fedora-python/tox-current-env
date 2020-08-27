@@ -4,6 +4,11 @@ import subprocess
 import sys
 import tox
 
+try:
+    import importlib.metadata as importlib_metadata
+except ImportError:
+    import importlib_metadata
+
 
 @tox.hookimpl
 def tox_addoption(parser):
@@ -185,3 +190,13 @@ def tox_cleanup(session):
     for venv in session.venv_dict.values():
         if is_current_env_link(venv):
             rm_venv(venv)
+
+
+@tox.hookimpl
+def tox_runenvreport(venv, action):
+    if not venv.envconfig.config.option.current_env:
+        return None
+    return (
+        "{}=={}".format(d.metadata.get("name"), d.version)
+        for d in importlib_metadata.distributions()
+    )

@@ -24,6 +24,7 @@ setup(
         # but the one downloaded from PyPI isn't and it doesn't work properly.
         "tox>=3.15; python_version >= '3.8'",
         "tox>=3.13; python_version < '3.8'",
+        "importlib_metadata; python_version < '3.8'"
     ],
     python_requires=">=3.6",
     classifiers=[

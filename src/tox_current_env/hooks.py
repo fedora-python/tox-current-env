@@ -194,9 +194,14 @@ def tox_cleanup(session):
 
 @tox.hookimpl
 def tox_runenvreport(venv, action):
-    if not venv.envconfig.config.option.current_env:
+    """Prevent using pip to display installed packages,
+    use importlib.metadata instead, but fallback to default without our flags."""
+    option = venv.envconfig.config.option
+    if not (option.current_env or option.print_deps_only):
         return None
     return (
         "{}=={}".format(d.metadata.get("name"), d.version)
-        for d in importlib_metadata.distributions()
+        for d in sorted(
+            importlib_metadata.distributions(), key=lambda d: d.metadata.get("name")
+        )
     )

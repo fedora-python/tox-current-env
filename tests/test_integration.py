@@ -1,6 +1,7 @@
 import functools
 import os
 import pathlib
+import re
 import shutil
 import subprocess
 import sys
@@ -28,12 +29,13 @@ def projdir(tmp_path, monkeypatch):
     monkeypatch.chdir(pwd)
 
 
-def tox(*args, **kwargs):
+def tox(*args, quiet=True, **kwargs):
     kwargs.setdefault("encoding", "utf-8")
     kwargs.setdefault("stdout", subprocess.PIPE)
     kwargs.setdefault("stderr", subprocess.PIPE)
     kwargs.setdefault("check", True)
-    cp = subprocess.run((sys.executable, "-m", "tox", "-q") + args, **kwargs)
+    q = ("-q",) if quiet else ()
+    cp = subprocess.run((sys.executable, "-m", "tox") + q + args, **kwargs)
     print(cp.stdout, file=sys.stdout)
     print(cp.stderr, file=sys.stderr)
     return cp
@@ -326,3 +328,32 @@ def test_print_deps_without_python_command(tmp_path):
         """
     ).lstrip()
     assert result.stdout == expected
+
+
+@pytest.mark.parametrize("flag", [None, "--print-deps-only", "--current-env"])
+def test_noquiet_installed_packages(flag):
+    flags = (flag,) if flag else ()
+    result = tox("-e", NATIVE_TOXENV, *flags, quiet=False, check=False)
+    assert f"\n{NATIVE_TOXENV} installed: " in result.stdout
+    for line in result.stdout.splitlines():
+        if line.startswith(f"{NATIVE_TOXENV} installed: "):
+            packages = line.rpartition(" installed: ")[-1].split(",")
+            break
+
+    # default tox produces output sorted by package names
+    assert packages == sorted(
+        packages, key=lambda p: p.partition("==")[0].partition(" @ ")[0]
+    )
+
+    # without a flag, the output must match tox defaults
+    if not flag:
+        assert len(packages) == 3
+        assert packages[0].startswith("py==")
+        assert packages[1].startswith("six==")
+        assert packages[2].startswith(("test==", "test @ "))  # old and new pip
+
+    # with our flags, uses the current environment by default, hence has tox, pytest
+    else:
+        assert f"tox=={TOX_VERSION}" in packages
+        assert len([p for p in packages if p.startswith("pytest==")]) == 1
+        assert all(re.match(r"\S+==\S+", p) for p in packages)

@@ -42,7 +42,12 @@ def tox(*args, quiet=True, **kwargs):
     kwargs.setdefault("stderr", subprocess.PIPE)
     kwargs.setdefault("check", True)
     q = ("-q",) if quiet else ()
-    cp = subprocess.run((sys.executable, "-m", "tox") + q + args, **kwargs)
+    try:
+        cp = subprocess.run((sys.executable, "-m", "tox") + q + args, **kwargs)
+    except subprocess.CalledProcessError as e:
+        print(e.stdout, file=sys.stdout)
+        print(e.stderr, file=sys.stderr)
+        raise
     print(cp.stdout, file=sys.stdout)
     print(cp.stderr, file=sys.stderr)
     return cp

@@ -36,6 +36,12 @@ def print_deps_stdout_arg(request):
     return request.param
 
 
+@pytest.fixture(params=('--print-extras-to-file=-', '--print-extras-to=-'))
+def print_extras_stdout_arg(request):
+    """Argument for printing extras to stdout"""
+    return request.param
+
+
 def tox(*args, quiet=True, **kwargs):
     kwargs.setdefault("encoding", "utf-8")
     kwargs.setdefault("stdout", subprocess.PIPE)
@@ -122,6 +128,21 @@ def test_print_deps(toxenv, print_deps_stdout_arg):
 
 
 @pytest.mark.parametrize("toxenv", ["py36", "py37", "py38", "py39"])
+def test_print_extras(toxenv, print_extras_stdout_arg):
+    result = tox("-e", toxenv, print_extras_stdout_arg)
+    expected = textwrap.dedent(
+        f"""
+        dev
+        full
+        ___________________________________ summary ____________________________________
+          {toxenv}: commands succeeded
+          congratulations :)
+        """
+    ).lstrip()
+    assert result.stdout == expected
+
+
+@pytest.mark.parametrize("toxenv", ["py36", "py37", "py38", "py39"])
 def test_print_deps_only_deprecated(toxenv):
     result = tox(
         "-e", toxenv, '--print-deps-only',
@@ -157,11 +178,49 @@ def test_allenvs_print_deps(print_deps_stdout_arg):
     assert result.stdout == expected
 
 
+def test_allenvs_print_extras(print_extras_stdout_arg):
+    result = tox(print_extras_stdout_arg)
+    expected = textwrap.dedent(
+        """
+        dev
+        full
+        dev
+        full
+        dev
+        full
+        dev
+        full
+        ___________________________________ summary ____________________________________
+          py36: commands succeeded
+          py37: commands succeeded
+          py38: commands succeeded
+          py39: commands succeeded
+          congratulations :)
+        """
+    ).lstrip()
+    assert result.stdout == expected
+
+
 @pytest.mark.parametrize("toxenv", ["py36", "py37", "py38", "py39"])
 def test_print_deps_to_file(toxenv, tmp_path):
     depspath = tmp_path / "deps"
     result = tox("-e", toxenv, "--print-deps-to", str(depspath))
     assert depspath.read_text().splitlines() == ["six", "py"]
+    expected = textwrap.dedent(
+        f"""
+        ___________________________________ summary ____________________________________
+          {toxenv}: commands succeeded
+          congratulations :)
+        """
+    ).lstrip()
+    assert result.stdout == expected
+
+
+@pytest.mark.parametrize("toxenv", ["py36", "py37", "py38", "py39"])
+def test_print_extras_to_file(toxenv, tmp_path):
+    extraspath = tmp_path / "extras"
+    result = tox("-e", toxenv, "--print-extras-to", str(extraspath))
+    assert extraspath.read_text().splitlines() == ["dev", "full"]
     expected = textwrap.dedent(
         f"""
         ___________________________________ summary ____________________________________
@@ -190,6 +249,24 @@ def test_allenvs_print_deps_to_file(tmp_path, option):
     assert result.stdout == expected
 
 
+@pytest.mark.parametrize('option', ('--print-extras-to', '--print-extras-to-file'))
+def test_allenvs_print_extras_to_file(tmp_path, option):
+    extraspath = tmp_path / "extras"
+    result = tox(option, str(extraspath))
+    assert extraspath.read_text().splitlines() == ["dev", "full"] * 4
+    expected = textwrap.dedent(
+        """
+        ___________________________________ summary ____________________________________
+          py36: commands succeeded
+          py37: commands succeeded
+          py38: commands succeeded
+          py39: commands succeeded
+          congratulations :)
+        """
+    ).lstrip()
+    assert result.stdout == expected
+
+
 def test_allenvs_print_deps_to_existing_file(tmp_path):
     depspath = tmp_path / "deps"
     depspath.write_text("nada")
@@ -198,6 +275,75 @@ def test_allenvs_print_deps_to_existing_file(tmp_path):
     assert "nada" not in lines
     assert "six" in lines
     assert "py" in lines
+
+
+def test_allenvs_print_extras_to_existing_file(tmp_path):
+    extraspath = tmp_path / "extras"
+    extraspath.write_text("nada")
+    result = tox("--print-extras-to", str(extraspath))
+    lines = extraspath.read_text().splitlines()
+    assert "nada" not in lines
+    assert "dev" in lines
+    assert "full" in lines
+
+
+@pytest.mark.parametrize("deps_stdout", [True, False])
+@pytest.mark.parametrize("extras_stdout", [True, False])
+def test_allenvs_print_deps_to_file_print_extras_to_other_file(tmp_path, deps_stdout, extras_stdout):
+    if deps_stdout and extras_stdout:
+        pytest.xfail("Unsupported combination of parameters")
+
+    depspath = "-" if deps_stdout else tmp_path / "deps"
+    extraspath = "-" if extras_stdout else tmp_path / "extras"
+    result = tox("--print-deps-to", str(depspath),
+                 "--print-extras-to", str(extraspath))
+    if deps_stdout:
+        depslines = result.stdout.splitlines()
+        extraslines = extraspath.read_text().splitlines()
+    elif extras_stdout:
+        depslines = depspath.read_text().splitlines()
+        extraslines = result.stdout.splitlines()
+    else:
+        extraslines = extraspath.read_text().splitlines()
+        depslines = depspath.read_text().splitlines()
+
+    assert "six" in depslines
+    assert "py" in depslines
+    assert "full" in extraslines
+    assert "dev" in extraslines
+
+    assert "six" not in extraslines
+    assert "py" not in extraslines
+    assert "full" not in depslines
+    assert "dev" not in depslines
+
+
+def test_print_deps_extras_to_same_file_is_not_possible(tmp_path):
+    depsextraspath = tmp_path / "depsextras"
+    result = tox(
+        "-e",
+        NATIVE_TOXENV,
+        "--print-deps-to", str(depsextraspath),
+        "--print-extras-to", str(depsextraspath),
+        check=False,
+    )
+    assert result.returncode > 0
+    assert "cannot be identical" in result.stderr
+
+
+def test_print_deps_extras_to_stdout_is_not_possible(
+        tmp_path,
+        print_deps_stdout_arg,
+        print_extras_stdout_arg,):
+    result = tox(
+        "-e",
+        NATIVE_TOXENV,
+        print_deps_stdout_arg,
+        print_extras_stdout_arg,
+        check=False,
+    )
+    assert result.returncode > 0
+    assert "cannot be identical" in result.stderr
 
 
 def test_print_deps_only_print_deps_to_file_are_mutually_exclusive():
@@ -315,6 +461,16 @@ def test_current_after_print_deps(print_deps_stdout_arg):
         result = tox("-e", NATIVE_TOXENV, print_deps_stdout_arg)
         assert "bin/python" not in result.stdout
         assert "six" in result.stdout
+        result = tox("-re", NATIVE_TOXENV, "--current-env")
+        assert result.stdout.splitlines()[0] == NATIVE_EXEC_PREFIX_MSG
+
+
+def test_current_after_print_extras(print_extras_stdout_arg):
+    # this is quite fast, so we can do it several times
+    for _ in range(3):
+        result = tox("-e", NATIVE_TOXENV, print_extras_stdout_arg)
+        assert "bin/python" not in result.stdout
+        assert "full" in result.stdout
         result = tox("-re", NATIVE_TOXENV, "--current-env")
         assert result.stdout.splitlines()[0] == NATIVE_EXEC_PREFIX_MSG
 

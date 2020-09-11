@@ -5,7 +5,7 @@ tox-current-env
 `tox <https://tox.readthedocs.io/>`_  plugin to run tests in current Python environment
 ---------------------------------------------------------------------------------------
 
-The ``tox-current-env`` plugin adds two options:
+The ``tox-current-env`` plugin adds these options:
 
 ``tox --current-env``
    Runs the tox testenv's ``commands`` in the current Python environment
@@ -15,10 +15,20 @@ The ``tox-current-env`` plugin adds two options:
    (if ``tox`` is invoked from an Python 3.7 environment, any non 3.7 testenv will fail).
 
 ``tox --print-deps-to=FILE``
-    Instead of running any ``commands``,
-    simply prints the declared dependencies in ``deps`` to the specified ``FILE``.
-    This is useful for preparing the current environment for the above.
+    Instead of running any ``commands``, simply prints the
+    `declared dependencies <https://tox.readthedocs.io/en/latest/config.html#conf-deps>`_
+    in ``deps`` to the specified ``FILE``.
+    This is useful for preparing the current environment for ``tox --current-env``.
     Use ``-`` for ``FILE`` to print to standard output.
+
+``tox --print-extras-to=FILE``
+    Instead of running any ``commands``, simply prints the names of the
+    `declared extras <https://tox.readthedocs.io/en/latest/config.html#conf-extras>`_
+    in ``extras`` to the specified ``FILE``.
+    This is useful for preparing the current environment for ``tox --current-env``.
+    Use ``-`` for ``FILE`` to print to standard output.
+
+It is possible to use the two printing options together, as long as the ``FILE`` is different.
 
 Invoking ``tox`` without any of the above options should behave as regular ``tox`` invocation without this plugin.
 Any deviation from this behavior is considered a bug.
@@ -82,7 +92,10 @@ and ``pip``-installing locally:
 Usage
 -----
 
-When the plugin is installed, use ``tox`` with ``--current-env`` or ``--print-deps-to`` and all the other options as usual. Assuming your ``tox`` is installed on Python 3.7:
+When the plugin is installed,
+use ``tox`` with ``--current-env``, ``--print-deps-to`` or ``--print-extras-to``
+and all the other options as usual.
+Assuming your ``tox`` is installed on Python 3.7:
 
 .. code-block:: console
 
@@ -125,6 +138,21 @@ To get list of test dependencies, run:
      py37: commands succeeded
      congratulations :)
 
+To get a list of names of extras, run:
+
+.. code-block:: console
+
+   $ tox -e py37 --print-extras-to -
+   py37 create: /home/pythonista/projects/holy-grail/tests/.tox/py37
+   py37 installed: ...you can see almost anything here...
+   py37 run-test-pre: PYTHONHASHSEED='3333333333'
+   extra1
+   extra2
+   ...
+   ___________________________________ summary ____________________________________
+     py37: commands succeeded
+     congratulations :)
+
 
 Caveats, warnings and limitations
 ---------------------------------
@@ -159,8 +187,8 @@ Don't mix current-env and regular tox runs
 
 Tox caches the virtualenvs it creates, and doesn't distinguish between
 regular virtualenvs and ``--current-env``.
-Don't mix ``tox --current-env`` or ``tox --print-deps-to`` runs
-and regular ``tox`` runs (without the flag).
+Don't mix ``tox --current-env``, ``tox --print-deps-to`` or ``tox --print-extras-to``
+runs and regular ``tox`` runs (without the flags provided by this plugin).
 If you ever need to do this, use tox's ``--recreate/-r`` flag to clear the cache.
 
 The plugin should abort with a meaningful error message if this is detected,
@@ -183,7 +211,7 @@ Read `the documentation for passing environment variables to tox
 Other limitations and known bugs
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The ``installed:`` line in the output of ``tox --print-deps-to`` shows irrelevant output
+The ``installed:`` line in the output of ``tox --print-deps-to``/``tox --print-extras-to`` shows irrelevant output
 (based on the content of the real or faked virtual environment).
 
 Regardless of any `Python flags <https://docs.python.org/3/using/cmdline.html>`_ used in the shebang of ``tox``,

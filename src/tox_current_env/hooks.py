@@ -38,6 +38,16 @@ def tox_addoption(parser):
         help="Don't run tests, only print the dependencies to the given file "
             + "(use `-` for stdout)",
     )
+    parser.add_argument(
+        "--print-extras-to",
+        "--print-extras-to-file",
+        action="store",
+        type=argparse.FileType('w'),
+        metavar="FILE",
+        default=None,
+        help="Don't run tests, only print the  names of the required extras to the given file "
+            + "(use `-` for stdout)",
+    )
 
 
 @tox.hookimpl
@@ -55,10 +65,16 @@ def tox_configure(config):
                 "--print-deps-only cannot be used together "
                 + "with --print-deps-to"
             )
-    if config.option.current_env or config.option.print_deps_to:
+    if config.option.current_env or config.option.print_deps_to or config.option.print_extras_to:
         config.skipsdist = True
         for testenv in config.envconfigs:
             config.envconfigs[testenv].whitelist_externals = "*"
+
+    if (getattr(config.option.print_deps_to, "name", object()) ==
+        getattr(config.option.print_extras_to, "name", object())):
+            raise tox.exception.ConfigError(
+                "The paths given to --print-deps-to and --print-extras-to cannot be identical."
+            )
 
     return config
 
@@ -97,16 +113,17 @@ def rm_venv(venv):
 def unsupported_raise(config, venv):
     if config.option.recreate:
         return
-    regular = not (config.option.current_env or config.option.print_deps_to)
+    regular = not (config.option.current_env or config.option.print_deps_to or config.option.print_extras_to)
     if regular and is_current_env_link(venv):
         if hasattr(tox.hookspecs, "tox_cleanup"):
             raise tox.exception.ConfigError(
-                "Looks like previous --current-env or --print-deps-to tox run didn't finish the cleanup. "
+                "Looks like previous --current-env, --print-deps-to or --print-extras-to tox run didn't finish the cleanup. "
                 "Run tox run with --recreate (-r) or manually remove the environment in .tox."
             )
         else:
             raise tox.exception.ConfigError(
-                "Regular tox run after --current-env or --print-deps-to tox run is not supported without --recreate (-r)."
+                "Regular tox run after --current-env, --print-deps-to or --print-extras-to tox run "
+                "is not supported without --recreate (-r)."
             )
     elif config.option.current_env and is_proper_venv(venv):
         raise tox.exception.ConfigError(
@@ -119,7 +136,7 @@ def tox_testenv_create(venv, action):
     """We create a fake virtualenv with just the symbolic link"""
     config = venv.envconfig.config
     create_fake_env = check_version = config.option.current_env
-    if config.option.print_deps_to:
+    if config.option.print_deps_to or config.option.print_extras_to:
         if is_any_env(venv):
             # We don't need anything
             return True
@@ -130,7 +147,7 @@ def tox_testenv_create(venv, action):
             # because it's cheaper, faster and won't install stuff
             create_fake_env = True
     if check_version:
-        # With real --current-env, we check this, but not with --print-deps-to only
+        # With real --current-env, we check this, but not with --print-deps/extras-to only
         version_info = venv.envconfig.python_info.version_info
         if version_info is None:
             raise tox.exception.InterpreterNotFound(venv.envconfig.basepython)
@@ -178,16 +195,30 @@ def tox_testenv_install_deps(venv, action):
 
 @tox.hookimpl
 def tox_runtest(venv, redirect):
-    """If --print-deps-to, prints deps instead of running tests"""
+    """If --print-deps-to, prints deps instead of running tests.
+    If --print-extras-to, prints extras instead of running tests.
+    Both options can be used together."""
     config = venv.envconfig.config
     unsupported_raise(config, venv)
+    ret = None
+
     if config.option.print_deps_to:
         print(
             *venv.get_resolved_dependencies(),
             sep="\n",
             file=config.option.print_deps_to,
         )
-        return True
+        ret = True
+
+    if config.option.print_extras_to:
+        print(
+            *venv.envconfig.extras,
+            sep="\n",
+            file=config.option.print_extras_to,
+        )
+        ret = True
+
+    return ret
 
 
 @tox.hookimpl

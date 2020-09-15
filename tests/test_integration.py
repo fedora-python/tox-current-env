@@ -155,7 +155,7 @@ def test_allenvs_print_deps(print_deps_stdout_arg):
 @pytest.mark.parametrize("toxenv", ["py36", "py37", "py38", "py39"])
 def test_print_deps_to_file(toxenv, tmp_path):
     depspath = tmp_path / "deps"
-    result = tox("-e", toxenv, "--print-deps-to-file", str(depspath))
+    result = tox("-e", toxenv, "--print-deps-to", str(depspath))
     assert depspath.read_text().splitlines() == ["six", "py"]
     expected = textwrap.dedent(
         f"""
@@ -169,7 +169,7 @@ def test_print_deps_to_file(toxenv, tmp_path):
 
 def test_allenvs_print_deps_to_file(tmp_path):
     depspath = tmp_path / "deps"
-    result = tox("--print-deps-to-file", str(depspath))
+    result = tox("--print-deps-to", str(depspath))
     assert depspath.read_text().splitlines() == ["six", "py"] * 4
     expected = textwrap.dedent(
         """
@@ -187,7 +187,7 @@ def test_allenvs_print_deps_to_file(tmp_path):
 def test_allenvs_print_deps_to_existing_file(tmp_path):
     depspath = tmp_path / "deps"
     depspath.write_text("nada")
-    result = tox("--print-deps-to-file", str(depspath))
+    result = tox("--print-deps-to", str(depspath))
     lines = depspath.read_text().splitlines()
     assert "nada" not in lines
     assert "six" in lines
@@ -199,7 +199,7 @@ def test_print_deps_only_print_deps_to_file_are_mutually_exclusive():
         "-e",
         NATIVE_TOXENV,
         "--print-deps-only",
-        "--print-deps-to-file",
+        "--print-deps-to",
         "foobar",
         check=False,
     )

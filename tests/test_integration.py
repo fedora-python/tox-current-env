@@ -249,7 +249,7 @@ def test_regular_after_current_is_supported():
     assert "--recreate" not in result.stderr
 
 
-def test_regular_after_killed_current_is_not_supported(print_deps_stdout_arg):
+def test_regular_after_killed_current_is_not_supported():
     # fake broken tox run
     shutil.rmtree(DOT_TOX, ignore_errors=True)
     (DOT_TOX / NATIVE_TOXENV / "bin").mkdir(parents=True)

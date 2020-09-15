@@ -32,7 +32,6 @@ def tox_addoption(parser):
         "--print-deps-to",
         "--print-deps-to-file",
         action="store",
-        dest="print_deps_to",
         type=argparse.FileType('w'),
         metavar="FILE",
         default=None,

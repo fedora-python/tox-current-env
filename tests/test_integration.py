@@ -167,9 +167,10 @@ def test_print_deps_to_file(toxenv, tmp_path):
     assert result.stdout == expected
 
 
-def test_allenvs_print_deps_to_file(tmp_path):
+@pytest.mark.parametrize('option', ('--print-deps-to', '--print-deps-to-file'))
+def test_allenvs_print_deps_to_file(tmp_path, option):
     depspath = tmp_path / "deps"
-    result = tox("--print-deps-to", str(depspath))
+    result = tox(option, str(depspath))
     assert depspath.read_text().splitlines() == ["six", "py"] * 4
     expected = textwrap.dedent(
         """

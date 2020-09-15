@@ -3,6 +3,8 @@ import shutil
 import subprocess
 import sys
 import tox
+import warnings
+import argparse
 
 try:
     import importlib.metadata as importlib_metadata
@@ -24,30 +26,37 @@ def tox_addoption(parser):
         action="store_true",
         dest="print_deps_only",
         default=False,
-        help="Don't run tests, only print the dependencies to stdout",
+        help="Deprecated, equivalent to `--print-deps-to -`",
     )
     parser.add_argument(
+        "--print-deps-to",
         "--print-deps-to-file",
         action="store",
-        dest="print_deps_path",
-        metavar="PATH",
+        dest="print_deps_to",
+        type=argparse.FileType('w'),
+        metavar="FILE",
         default=None,
-        help="Like --print-deps-only, but to a file. Overwrites the file if it exists.",
+        help="Don't run tests, only print the dependencies to the given file "
+            + "(use `-` for stdout)",
     )
 
 
 @tox.hookimpl
 def tox_configure(config):
     """Stores options in the config. Makes all commands external and skips sdist"""
-    if config.option.print_deps_only and config.option.print_deps_path:
-        raise tox.exception.ConfigError(
-            "--print-deps-only cannot be used together with --print-deps-to-file"
+    if config.option.print_deps_only:
+        warnings.warn(
+            "--print-deps-only is deprecated; use `--print-deps-to -`",
+            DeprecationWarning,
         )
-    if config.option.print_deps_path is not None:
-        config.option.print_deps_only = True
-        with open(config.option.print_deps_path, "w", encoding="utf-8") as f:
-            f.write("")
-    if config.option.current_env or config.option.print_deps_only:
+        if not config.option.print_deps_to:
+            config.option.print_deps_to = sys.stdout
+        else:
+            raise tox.exception.ConfigError(
+                "--print-deps-only cannot be used together "
+                + "with --print-deps-to"
+            )
+    if config.option.current_env or config.option.print_deps_to:
         config.skipsdist = True
         for testenv in config.envconfigs:
             config.envconfigs[testenv].whitelist_externals = "*"
@@ -89,16 +98,16 @@ def rm_venv(venv):
 def unsupported_raise(config, venv):
     if config.option.recreate:
         return
-    regular = not (config.option.current_env or config.option.print_deps_only)
+    regular = not (config.option.current_env or config.option.print_deps_to)
     if regular and is_current_env_link(venv):
         if hasattr(tox.hookspecs, "tox_cleanup"):
             raise tox.exception.ConfigError(
-                "Looks like previous --current-env or --print-deps-only tox run didn't finish the cleanup. "
+                "Looks like previous --current-env or --print-deps-to tox run didn't finish the cleanup. "
                 "Run tox run with --recreate (-r) or manually remove the environment in .tox."
             )
         else:
             raise tox.exception.ConfigError(
-                "Regular tox run after --current-env or --print-deps-only tox run is not supported without --recreate (-r)."
+                "Regular tox run after --current-env or --print-deps-to tox run is not supported without --recreate (-r)."
             )
     elif config.option.current_env and is_proper_venv(venv):
         raise tox.exception.ConfigError(
@@ -111,7 +120,7 @@ def tox_testenv_create(venv, action):
     """We create a fake virtualenv with just the symbolic link"""
     config = venv.envconfig.config
     create_fake_env = check_version = config.option.current_env
-    if config.option.print_deps_only:
+    if config.option.print_deps_to:
         if is_any_env(venv):
             # We don't need anything
             return True
@@ -122,7 +131,7 @@ def tox_testenv_create(venv, action):
             # because it's cheaper, faster and won't install stuff
             create_fake_env = True
     if check_version:
-        # With real --current-env, we check this, but not with --print-deps-only only
+        # With real --current-env, we check this, but not with --print-deps-to only
         version_info = venv.envconfig.python_info.version_info
         if version_info is None:
             raise tox.exception.InterpreterNotFound(venv.envconfig.basepython)
@@ -164,21 +173,21 @@ def tox_testenv_install_deps(venv, action):
     """We don't install anything"""
     config = venv.envconfig.config
     unsupported_raise(config, venv)
-    if config.option.current_env or config.option.print_deps_only:
+    if config.option.current_env or config.option.print_deps_to:
         return True
 
 
 @tox.hookimpl
 def tox_runtest(venv, redirect):
-    """If --print-deps-only, prints deps instead of running tests"""
+    """If --print-deps-to, prints deps instead of running tests"""
     config = venv.envconfig.config
     unsupported_raise(config, venv)
-    if config.option.print_deps_path is not None:
-        with open(config.option.print_deps_path, "a", encoding="utf-8") as f:
-            print(*venv.get_resolved_dependencies(), sep="\n", file=f)
-        return True
-    if config.option.print_deps_only:
-        print(*venv.get_resolved_dependencies(), sep="\n")
+    if config.option.print_deps_to:
+        print(
+            *venv.get_resolved_dependencies(),
+            sep="\n",
+            file=config.option.print_deps_to,
+        )
         return True
 
 

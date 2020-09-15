@@ -14,11 +14,11 @@ The ``tox-current-env`` plugin adds two options:
    An attempt to run this with a Python version that doesn't match will fail
    (if ``tox`` is invoked from an Python 3.7 environment, any non 3.7 testenv will fail).
 
-``tox --print-deps-only`` / ``--print-deps-to-file``
+``tox --print-deps-to=FILE``
     Instead of running any ``commands``,
-    simply prints the declared dependencies in ``deps`` to the standard output or specified file.
+    simply prints the declared dependencies in ``deps`` to the specified ``FILE``.
     This is useful for preparing the current environment for the above.
-    ``--print-deps-to-file`` will overwrite the file if it already exists.
+    Use ``-`` for ``FILE`` to print to standard output.
 
 Invoking ``tox`` without any of the above options should behave as regular ``tox`` invocation without this plugin.
 Any deviation from this behavior is considered a bug.
@@ -82,7 +82,7 @@ and ``pip``-installing locally:
 Usage
 -----
 
-When the plugin is installed, use ``tox`` with ``--current-env`` or ``--print-deps-only`` and all the other options as usual. Assuming your ``tox`` is installed on Python 3.7:
+When the plugin is installed, use ``tox`` with ``--current-env`` or ``--print-deps-to`` and all the other options as usual. Assuming your ``tox`` is installed on Python 3.7:
 
 .. code-block:: console
 
@@ -114,7 +114,7 @@ To get list of test dependencies, run:
 
 .. code-block:: console
 
-   $ tox -e py37 --print-deps-only
+   $ tox -e py37 --print-deps-to -
    py37 create: /home/pythonista/projects/holy-grail/tests/.tox/py37
    py37 installed: ...you can see almost anything here...
    py37 run-test-pre: PYTHONHASHSEED='3333333333'
@@ -159,7 +159,7 @@ Don't mix current-env and regular tox runs
 
 Tox caches the virtualenvs it creates, and doesn't distinguish between
 regular virtualenvs and ``--current-env``.
-Don't mix ``tox --current-env`` or ``tox --print-deps-only`` runs
+Don't mix ``tox --current-env`` or ``tox --print-deps-to`` runs
 and regular ``tox`` runs (without the flag).
 If you ever need to do this, use tox's ``--recreate/-r`` flag to clear the cache.
 
@@ -183,7 +183,7 @@ Read `the documentation for passing environment variables to tox
 Other limitations and known bugs
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The ``installed:`` line in the output of ``tox --print-deps-only`` shows irrelevant output
+The ``installed:`` line in the output of ``tox --print-deps-to`` shows irrelevant output
 (based on the content of the real or faked virtual environment).
 
 Regardless of any `Python flags <https://docs.python.org/3/using/cmdline.html>`_ used in the shebang of ``tox``,

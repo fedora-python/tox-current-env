@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import sys
 import textwrap
+import warnings
 
 from packaging import version
 
@@ -27,6 +28,12 @@ def projdir(tmp_path, monkeypatch):
     for fname in "tox.ini", "setup.py":
         shutil.copy(FIXTURES_DIR / fname, pwd)
     monkeypatch.chdir(pwd)
+
+
+@pytest.fixture(params=('--print-deps-only', '--print-deps-to-file=-', '--print-deps-to=-'))
+def print_deps_stdout_arg(request):
+    """Argument for printing deps to stdout"""
+    return request.param
 
 
 def tox(*args, quiet=True, **kwargs):
@@ -95,8 +102,8 @@ def test_all_toxenv_current_env_skip_missing():
 
 
 @pytest.mark.parametrize("toxenv", ["py36", "py37", "py38", "py39"])
-def test_print_deps_only(toxenv):
-    result = tox("-e", toxenv, "--print-deps-only")
+def test_print_deps(toxenv, print_deps_stdout_arg):
+    result = tox("-e", toxenv, print_deps_stdout_arg)
     expected = textwrap.dedent(
         f"""
         six
@@ -109,8 +116,21 @@ def test_print_deps_only(toxenv):
     assert result.stdout == expected
 
 
-def test_allenvs_print_deps_only():
-    result = tox("--print-deps-only")
+@pytest.mark.parametrize("toxenv", ["py36", "py37", "py38", "py39"])
+def test_print_deps_only_deprecated(toxenv):
+    result = tox(
+        "-e", toxenv, '--print-deps-only',
+        env={**os.environ, 'PYTHONWARNINGS': 'always'},
+    )
+    waring_text = (
+        "DeprecationWarning: --print-deps-only is deprecated; "
+        + "use `--print-deps-to -`"
+    )
+    assert waring_text in result.stderr
+
+
+def test_allenvs_print_deps(print_deps_stdout_arg):
+    result = tox(print_deps_stdout_arg)
     expected = textwrap.dedent(
         """
         six
@@ -229,7 +249,7 @@ def test_regular_after_current_is_supported():
     assert "--recreate" not in result.stderr
 
 
-def test_regular_after_killed_current_is_not_supported():
+def test_regular_after_killed_current_is_not_supported(print_deps_stdout_arg):
     # fake broken tox run
     shutil.rmtree(DOT_TOX, ignore_errors=True)
     (DOT_TOX / NATIVE_TOXENV / "bin").mkdir(parents=True)
@@ -240,8 +260,8 @@ def test_regular_after_killed_current_is_not_supported():
     assert "--recreate" in result.stderr
 
 
-def test_regular_after_first_deps_only_is_supported():
-    result = tox("-e", NATIVE_TOXENV, "--print-deps-only")
+def test_regular_after_first_print_deps_is_supported(print_deps_stdout_arg):
+    result = tox("-e", NATIVE_TOXENV, print_deps_stdout_arg)
     assert result.stdout.splitlines()[0] == "six"
     result = tox("-e", NATIVE_TOXENV)
     lines = sorted(result.stdout.splitlines()[:1])
@@ -283,18 +303,18 @@ def test_current_recreate_after_regular():
     assert result.stdout.splitlines()[0] == NATIVE_EXEC_PREFIX_MSG
 
 
-def test_current_after_deps_only():
+def test_current_after_print_deps(print_deps_stdout_arg):
     # this is quite fast, so we can do it several times
     for _ in range(3):
-        result = tox("-e", NATIVE_TOXENV, "--print-deps-only")
+        result = tox("-e", NATIVE_TOXENV, print_deps_stdout_arg)
         assert "bin/python" not in result.stdout
         assert "six" in result.stdout
         result = tox("-re", NATIVE_TOXENV, "--current-env")
         assert result.stdout.splitlines()[0] == NATIVE_EXEC_PREFIX_MSG
 
 
-def test_regular_recreate_after_deps_only():
-    result = tox("-e", NATIVE_TOXENV, "--print-deps-only")
+def test_regular_recreate_after_print_deps(print_deps_stdout_arg):
+    result = tox("-e", NATIVE_TOXENV, print_deps_stdout_arg)
     assert "bin/python" not in result.stdout
     assert "six" in result.stdout
 
@@ -304,12 +324,12 @@ def test_regular_recreate_after_deps_only():
     assert sitelib.is_dir()
     assert len(list(sitelib.glob("test-*.dist-info"))) == 1
 
-    result = tox("-e", NATIVE_TOXENV, "--print-deps-only")
+    result = tox("-e", NATIVE_TOXENV, print_deps_stdout_arg)
     assert "bin/python" not in result.stdout
     assert "six" in result.stdout
 
 
-def test_print_deps_without_python_command(tmp_path):
+def test_print_deps_without_python_command(tmp_path, print_deps_stdout_arg):
     bin = tmp_path / "bin"
     bin.mkdir()
     tox_link = bin / "tox"
@@ -317,7 +337,7 @@ def test_print_deps_without_python_command(tmp_path):
     tox_link.symlink_to(tox_path)
     env = {**os.environ, "PATH": str(bin)}
 
-    result = tox("-e", NATIVE_TOXENV, "--print-deps-only", env=env)
+    result = tox("-e", NATIVE_TOXENV, print_deps_stdout_arg, env=env)
     expected = textwrap.dedent(
         f"""
         six

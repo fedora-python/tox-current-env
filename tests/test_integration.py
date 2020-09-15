@@ -351,7 +351,7 @@ def test_print_deps_without_python_command(tmp_path, print_deps_stdout_arg):
     assert result.stdout == expected
 
 
-@pytest.mark.parametrize("flag", [None, "--print-deps-only", "--current-env"])
+@pytest.mark.parametrize("flag", [None, "--print-deps-to=-", "--current-env"])
 def test_noquiet_installed_packages(flag):
     flags = (flag,) if flag else ()
     result = tox("-e", NATIVE_TOXENV, *flags, quiet=False, check=False)

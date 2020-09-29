@@ -208,6 +208,7 @@ def tox_runtest(venv, redirect):
             sep="\n",
             file=config.option.print_deps_to,
         )
+        config.option.print_deps_to.flush()
         ret = True
 
     if config.option.print_extras_to:
@@ -216,6 +217,7 @@ def tox_runtest(venv, redirect):
             sep="\n",
             file=config.option.print_extras_to,
         )
+        config.option.print_extras_to.flush()
         ret = True
 
     return ret

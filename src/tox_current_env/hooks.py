@@ -190,7 +190,7 @@ def tox_testenv_install_deps(venv, action):
     """We don't install anything"""
     config = venv.envconfig.config
     unsupported_raise(config, venv)
-    if config.option.current_env or config.option.print_deps_to:
+    if config.option.current_env or config.option.print_deps_to or config.option.print_extras_to:
         return True
 
 

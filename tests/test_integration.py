@@ -15,10 +15,18 @@ import pytest
 
 NATIVE_TOXENV = f"py{sys.version_info[0]}{sys.version_info[1]}"
 NATIVE_EXECUTABLE = str(pathlib.Path(sys.executable).resolve())
-NATIVE_EXEC_PREFIX = str(pathlib.Path(sys.exec_prefix).resolve())
-NATIVE_EXEC_PREFIX_MSG = f"{NATIVE_EXEC_PREFIX} is the exec_prefix"
 FIXTURES_DIR = pathlib.Path(__file__).parent / "fixtures"
 DOT_TOX = pathlib.Path("./.tox")
+
+
+def _exec_prefix(executable):
+    """Returns sys.exec_prefix for the given executable"""
+    cmd = (executable, "-c", "import sys; print(sys.exec_prefix)")
+    return subprocess.check_output(cmd, encoding="utf-8").strip()
+
+
+NATIVE_EXEC_PREFIX = _exec_prefix(NATIVE_EXECUTABLE)
+NATIVE_EXEC_PREFIX_MSG = f"{NATIVE_EXEC_PREFIX} is the exec_prefix"
 
 
 @pytest.fixture(autouse=True)
@@ -524,7 +532,7 @@ def test_noquiet_installed_packages(flag):
 
     # default tox produces output sorted by package names
     assert packages == sorted(
-        packages, key=lambda p: p.partition("==")[0].partition(" @ ")[0]
+        packages, key=lambda p: p.partition("==")[0].partition(" @ ")[0].lower()
     )
 
     # without a flag, the output must match tox defaults
@@ -534,8 +542,7 @@ def test_noquiet_installed_packages(flag):
         assert packages[1].startswith("six==")
         assert packages[2].startswith(("test==", "test @ "))  # old and new pip
 
-    # with our flags, uses the current environment by default, hence has tox, pytest
+    # with our flags, uses the absolutely current environment by default, hence has tox
     else:
-        assert f"tox=={TOX_VERSION}" in packages
-        assert len([p for p in packages if p.startswith("pytest==")]) == 1
+        assert len([p for p in packages if p.startswith("tox==")]) == 1
         assert all(re.match(r"\S+==\S+", p) for p in packages)

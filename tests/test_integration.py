@@ -36,6 +36,7 @@ def projdir(tmp_path, monkeypatch):
     for fname in "tox.ini", "setup.py":
         shutil.copy(FIXTURES_DIR / fname, pwd)
     monkeypatch.chdir(pwd)
+    return pwd
 
 
 @pytest.fixture(params=('--print-deps-only', '--print-deps-to-file=-', '--print-deps-to=-'))
@@ -546,3 +547,24 @@ def test_noquiet_installed_packages(flag):
     else:
         assert len([p for p in packages if p.startswith("tox==")]) == 1
         assert all(re.match(r"\S+==\S+", p) for p in packages)
+
+
+@pytest.mark.parametrize("flag", ["--print-deps-to=-", "--print-extras-to=-", "--current-env"])
+@pytest.mark.parametrize("usedevelop", [True, False])
+def test_self_is_not_installed(projdir, flag, usedevelop):
+    tox_ini = projdir / "tox.ini"
+    with open(tox_ini, 'a') as tox_ini_file:
+        print(f"usedevelop={usedevelop}", file=tox_ini_file)
+    result = tox("-e", NATIVE_TOXENV, flag, quiet=False)
+    assert 'test==0.0.0' not in result.stdout
+    assert 'test @ file://' not in result.stdout
+
+
+@pytest.mark.parametrize("usedevelop", [True, False])
+def test_self_is_installed_with_regular_tox(projdir, usedevelop):
+    tox_ini = projdir / "tox.ini"
+    with open(tox_ini, 'a') as tox_ini_file:
+        print(f"usedevelop={usedevelop}", file=tox_ini_file)
+    result = tox("-e", NATIVE_TOXENV, quiet=False)
+    assert ('test==0.0.0' in result.stdout or
+            'test @ file://' in result.stdout)

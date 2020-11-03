@@ -69,6 +69,7 @@ def tox_configure(config):
         config.skipsdist = True
         for testenv in config.envconfigs:
             config.envconfigs[testenv].whitelist_externals = "*"
+            config.envconfigs[testenv].usedevelop = False
 
     if (getattr(config.option.print_deps_to, "name", object()) ==
         getattr(config.option.print_extras_to, "name", object())):

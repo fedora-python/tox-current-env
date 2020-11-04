@@ -7,6 +7,8 @@ import subprocess
 import sys
 import textwrap
 import warnings
+import configparser
+import contextlib
 
 from packaging import version
 
@@ -49,6 +51,24 @@ def print_deps_stdout_arg(request):
 def print_extras_stdout_arg(request):
     """Argument for printing extras to stdout"""
     return request.param
+
+
+@contextlib.contextmanager
+def modify_config(tox_ini_path):
+    """Context manager that allows modifying the given Tox config file
+
+    A statement like::
+
+        with prepare_config(projdir) as config:
+
+    will make `config` a ConfigParser instance that is saved at the end
+    of the `with` block.
+    """
+    config = configparser.ConfigParser()
+    config.read(tox_ini_path)
+    yield config
+    with open(tox_ini_path, 'w') as tox_ini_file:
+        config.write(tox_ini_file)
 
 
 def tox(*args, quiet=True, **kwargs):
@@ -552,9 +572,8 @@ def test_noquiet_installed_packages(flag):
 @pytest.mark.parametrize("flag", ["--print-deps-to=-", "--print-extras-to=-", "--current-env"])
 @pytest.mark.parametrize("usedevelop", [True, False])
 def test_self_is_not_installed(projdir, flag, usedevelop):
-    tox_ini = projdir / "tox.ini"
-    with open(tox_ini, 'a') as tox_ini_file:
-        print(f"usedevelop={usedevelop}", file=tox_ini_file)
+    with modify_config(projdir / 'tox.ini') as config:
+        config['testenv']['usedevelop'] = str(usedevelop)
     result = tox("-e", NATIVE_TOXENV, flag, quiet=False)
     assert 'test==0.0.0' not in result.stdout
     assert 'test @ file://' not in result.stdout
@@ -562,9 +581,8 @@ def test_self_is_not_installed(projdir, flag, usedevelop):
 
 @pytest.mark.parametrize("usedevelop", [True, False])
 def test_self_is_installed_with_regular_tox(projdir, usedevelop):
-    tox_ini = projdir / "tox.ini"
-    with open(tox_ini, 'a') as tox_ini_file:
-        print(f"usedevelop={usedevelop}", file=tox_ini_file)
+    with modify_config(projdir / 'tox.ini') as config:
+        config['testenv']['usedevelop'] = str(usedevelop)
     result = tox("-e", NATIVE_TOXENV, quiet=False)
     assert ('test==0.0.0' in result.stdout or
             'test @ file://' in result.stdout)

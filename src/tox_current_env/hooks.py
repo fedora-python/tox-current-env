@@ -239,7 +239,7 @@ def tox_runenvreport(venv, action):
     """Prevent using pip to display installed packages,
     use importlib.metadata instead, but fallback to default without our flags."""
     option = venv.envconfig.config.option
-    if not (option.current_env or option.print_deps_only):
+    if not (option.current_env or option.print_deps_to or option.print_extras_to):
         return None
     return (
         "{}=={}".format(d.metadata.get("name"), d.version)

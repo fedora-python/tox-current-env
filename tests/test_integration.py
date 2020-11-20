@@ -10,8 +10,6 @@ import warnings
 import configparser
 import contextlib
 
-from packaging import version
-
 import pytest
 
 
@@ -95,10 +93,6 @@ def is_available(python):
     except FileNotFoundError:
         return False
     return True
-
-
-TOX_VERSION = version.parse(tox("--version").stdout.split(" ")[0])
-TOX313 = TOX_VERSION < version.parse("3.14")
 
 
 needs_py36789 = pytest.mark.skipif(
@@ -398,11 +392,6 @@ def test_regular_run():
     assert "/.tox/py39 is the exec_prefix" in lines[3]
     assert "congratulations" in result.stdout
     for y in 6, 7, 8, 9:
-        if TOX313 and y > 8:
-            # there is a bug in tox < 3.14,
-            # it creates venv with /usr/bin/python3 if the version is unknown
-            # See https://src.fedoraproject.org/rpms/python-tox/pull-request/15
-            continue
         for pkg in "py", "six", "test":
             sitelib = DOT_TOX / f"py3{y}/lib/python3.{y}/site-packages"
             assert sitelib.is_dir()

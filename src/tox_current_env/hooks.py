@@ -50,6 +50,10 @@ def tox_addoption(parser):
     )
 
 
+def _plugin_active(option):
+    return option.current_env or option.print_deps_to or option.print_extras_to
+
+
 @tox.hookimpl
 def tox_configure(config):
     """Stores options in the config. Makes all commands external and skips sdist"""
@@ -65,7 +69,7 @@ def tox_configure(config):
                 "--print-deps-only cannot be used together "
                 + "with --print-deps-to"
             )
-    if config.option.current_env or config.option.print_deps_to or config.option.print_extras_to:
+    if _plugin_active(config.option):
         config.skipsdist = True
         for testenv in config.envconfigs:
             config.envconfigs[testenv].whitelist_externals = "*"
@@ -114,8 +118,7 @@ def rm_venv(venv):
 def unsupported_raise(config, venv):
     if config.option.recreate:
         return
-    regular = not (config.option.current_env or config.option.print_deps_to or config.option.print_extras_to)
-    if regular and is_current_env_link(venv):
+    if not _plugin_active(config.option) and is_current_env_link(venv):
         if hasattr(tox.hookspecs, "tox_cleanup"):
             raise tox.exception.ConfigError(
                 "Looks like previous --current-env, --print-deps-to or --print-extras-to tox run didn't finish the cleanup. "
@@ -190,7 +193,7 @@ def tox_testenv_install_deps(venv, action):
     """We don't install anything"""
     config = venv.envconfig.config
     unsupported_raise(config, venv)
-    if config.option.current_env or config.option.print_deps_to or config.option.print_extras_to:
+    if _plugin_active(config.option):
         return True
 
 
@@ -238,8 +241,7 @@ def tox_cleanup(session):
 def tox_runenvreport(venv, action):
     """Prevent using pip to display installed packages,
     use importlib.metadata instead, but fallback to default without our flags."""
-    option = venv.envconfig.config.option
-    if not (option.current_env or option.print_deps_to or option.print_extras_to):
+    if not _plugin_active(venv.envconfig.config.option):
         return None
     return (
         "{}=={}".format(d.metadata.get("name"), d.version)

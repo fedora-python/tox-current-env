@@ -197,6 +197,14 @@ def tox_testenv_install_deps(venv, action):
         return True
 
 
+def tox_dependencies(config):
+    """Get dependencies of tox itself, 'minversion' config option"""
+    deps = []
+    if config.minversion is not None:
+        deps.append(f"tox >= {config.minversion}")
+    return deps
+
+
 @tox.hookimpl
 def tox_runtest(venv, redirect):
     """If --print-deps-to, prints deps instead of running tests.
@@ -208,6 +216,7 @@ def tox_runtest(venv, redirect):
 
     if config.option.print_deps_to:
         print(
+            *tox_dependencies(config),
             *venv.get_resolved_dependencies(),
             sep="\n",
             file=config.option.print_deps_to,

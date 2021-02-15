@@ -151,6 +151,24 @@ def test_print_deps(toxenv, print_deps_stdout_arg):
 
 
 @pytest.mark.parametrize("toxenv", ["py36", "py37", "py38", "py39"])
+def test_print_deps_with_tox_minversion(projdir, toxenv, print_deps_stdout_arg):
+    with modify_config(projdir / 'tox.ini') as config:
+        config["tox"]["minversion"] = "3.13"
+    result = tox("-e", toxenv, print_deps_stdout_arg)
+    expected = textwrap.dedent(
+        f"""
+        tox >= 3.13
+        six
+        py
+        ___________________________________ summary ____________________________________
+          {toxenv}: commands succeeded
+          congratulations :)
+        """
+    ).lstrip()
+    assert result.stdout == expected
+
+
+@pytest.mark.parametrize("toxenv", ["py36", "py37", "py38", "py39"])
 def test_print_extras(toxenv, print_extras_stdout_arg):
     result = tox("-e", toxenv, print_extras_stdout_arg)
     expected = textwrap.dedent(

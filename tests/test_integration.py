@@ -10,6 +10,8 @@ import warnings
 import configparser
 import contextlib
 
+from packaging.version import parse as ver
+
 import pytest
 
 
@@ -86,6 +88,9 @@ def tox(*args, quiet=True, **kwargs):
     return cp
 
 
+TOX_VERSION = ver(tox("--version").stdout.split(" ")[0])
+
+
 @functools.lru_cache(maxsize=8)
 def is_available(python):
     try:
@@ -158,6 +163,48 @@ def test_print_deps_with_tox_minversion(projdir, toxenv, print_deps_stdout_arg):
     expected = textwrap.dedent(
         f"""
         tox >= 3.13
+        six
+        py
+        ___________________________________ summary ____________________________________
+          {toxenv}: commands succeeded
+          congratulations :)
+        """
+    ).lstrip()
+    assert result.stdout == expected
+
+
+@pytest.mark.xfail(TOX_VERSION < ver("3.22"), reason="No support in old tox")
+@pytest.mark.parametrize("toxenv", ["py36", "py37", "py38", "py39"])
+def test_print_deps_with_tox_requires(projdir, toxenv, print_deps_stdout_arg):
+    with modify_config(projdir / 'tox.ini') as config:
+        config["tox"]["requires"] = "\n    setuptools > 30\n    pluggy"
+    result = tox("-e", toxenv, print_deps_stdout_arg)
+    expected = textwrap.dedent(
+        f"""
+        setuptools > 30
+        pluggy
+        six
+        py
+        ___________________________________ summary ____________________________________
+          {toxenv}: commands succeeded
+          congratulations :)
+        """
+    ).lstrip()
+    assert result.stdout == expected
+
+
+@pytest.mark.xfail(TOX_VERSION < ver("3.22"), reason="No support in old tox")
+@pytest.mark.parametrize("toxenv", ["py36", "py37", "py38", "py39"])
+def test_print_deps_with_tox_minversion_and_requires(projdir, toxenv, print_deps_stdout_arg):
+    with modify_config(projdir / 'tox.ini') as config:
+        config["tox"]["minversion"] = "3.13"
+        config["tox"]["requires"] = "\n    setuptools > 30\n    pluggy"
+    result = tox("-e", toxenv, print_deps_stdout_arg)
+    expected = textwrap.dedent(
+        f"""
+        tox >= 3.13
+        setuptools > 30
+        pluggy
         six
         py
         ___________________________________ summary ____________________________________

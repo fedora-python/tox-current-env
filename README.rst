@@ -207,6 +207,44 @@ use the ``TOX_TESTENV_PASSENV`` environment variable.
 Read `the documentation for passing environment variables to tox
 <https://tox.readthedocs.io/en/latest/config.html#conf-passenv>`_.
 
+Tox provisioning
+~~~~~~~~~~~~~~~~
+
+The tested projects can specify the
+`minimal tox version <https://tox.readthedocs.io/en/latest/config.html#conf-minversion>`_
+and/or
+`additional requires <https://tox.readthedocs.io/en/latest/config.html#conf-requires>`_
+needed in the environment where ``tox`` is installed.
+Normally, ``tox`` uses *provisioning* when such requirements are not met.
+It creates a virtual environment,
+installs (a newer version of) ``tox`` and the missing packages
+into that environment and proxies all ``tox`` invocations trough that.
+Unfortunately, this is undesired for ``tox-current-env``.
+
+ 1. Starting with ``tox`` 3.23, it is possible to invoke it as
+    ``tox --no-provision`` to prevent the provision entirely.
+    When requirements are missing, ``tox`` fails instead of provisioning.
+    If a path is passed as a value for ``--no-provision``,
+    the requirements will be serialized to the file, as JSON.
+ 2. Starting with ``tox`` 3.22, the requires, if specified, are included in the
+    results of ``tox --print-deps-to``.
+    This only works when they are installed (otherwise see the first point).
+ 3. The minimal tox version, if specified, is included in the results of
+    ``tox --print-deps-to`` (as ``tox >= X.Y.Z``).
+    This only works when the version requirement is satisfied
+    (otherwise see the first point).
+
+With ``tox >= 3.23``, the recommend way to handle this is:
+
+ 1. Run ``tox --no-provision provision.json --print-deps-to=...`` or similar.
+ 2. If the command fails, install requirements from ``provision.json`` to the
+    current environment and try again.
+
+Note that the specified requirements are likely to contain
+`other tox plugins <https://tox.readthedocs.io/en/latest/plugins.html>`_
+and many of them might interfere with ``tox-current-env`` in an undesired way.
+If that is the case, the recommended way is to patch/sed such undesired plugins
+out of the configuration before running ``tox``.
 
 Other limitations and known bugs
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

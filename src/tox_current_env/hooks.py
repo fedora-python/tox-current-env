@@ -199,11 +199,10 @@ def tox_testenv_install_deps(venv, action):
 
 def tox_dependencies(config):
     """Get dependencies of tox itself, 'minversion' and 'requires' config options"""
-    # config does not have this attribute until tox 3.22:
-    deps = getattr(config, "requires", [])
     if config.minversion is not None:
-        deps.insert(0, f"tox >= {config.minversion}")
-    return deps
+        yield f"tox >= {config.minversion}"
+    # config does not have the "requires" attribute until tox 3.22:
+    yield from getattr(config, "requires", [])
 
 
 @tox.hookimpl

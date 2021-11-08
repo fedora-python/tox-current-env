@@ -26,7 +26,7 @@ def tox_addoption(parser):
         action="store_true",
         dest="print_deps_only",
         default=False,
-        help="Deprecated, equivalent to `--print-deps-to -`",
+        help="Deprecated, equivalent to `--print-deps-to -`. Not available with tox 4.",
     )
     parser.add_argument(
         "--print-deps-to",

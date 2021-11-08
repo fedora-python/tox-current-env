@@ -29,13 +29,6 @@ def tox_add_option(parser):
         help="Run tests in current environment, not creating any virtual environment",
     )
     parser.add_argument(
-        "--print-deps-only",
-        action="store_true",
-        dest="print_deps_only",
-        default=False,
-        help="Deprecated, equivalent to `--print-deps-to -`",
-    )
-    parser.add_argument(
         "--print-deps-to",
         "--print-deps-to-file",
         action="store",
@@ -62,18 +55,6 @@ def tox_add_core_config(core_conf, config):
     if config.options.current_env:
         config.options.default_runner = "current-env"
         return
-
-    if config.options.print_deps_only:
-        warnings.warn(
-            "--print-deps-only is deprecated; use `--print-deps-to -`",
-            DeprecationWarning,
-        )
-        if not config.options.print_deps_to:
-            config.options.print_deps_to = sys.stdout
-        else:
-            raise RuntimeError(
-                "--print-deps-only cannot be used together " "with --print-deps-to"
-            )
 
     if getattr(config.options.print_deps_to, "name", object()) == getattr(
         config.options.print_extras_to, "name", object()

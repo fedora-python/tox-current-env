@@ -11,6 +11,7 @@ from tox.execute.local_sub_process import LocalSubProcessExecuteInstance
 from tox.plugin import impl
 from tox.report import HandledError
 from tox.tox_env.python.api import PythonInfo
+from tox.tox_env.python.pip.pip_install import Pip
 from tox.tox_env.python.runner import PythonRun
 
 
@@ -137,7 +138,7 @@ class CurrentEnv(PythonRun):
     @property
     def installer(self):
         if self._installer is None:
-            self._installer = DummyInstaller()
+            self._installer = Pip(self)
         return self._installer
 
     def prepend_env_var_path(self):
@@ -160,11 +161,6 @@ class CurrentEnvRunExecutor(Execute):
         # all of them are external for us.
         request.allow = None
         return LocalSubProcessExecuteInstance(request, options, out, err)
-
-
-class DummyInstaller:
-    def install(self, *args):
-        return
 
 
 class PrintEnv(CurrentEnv):

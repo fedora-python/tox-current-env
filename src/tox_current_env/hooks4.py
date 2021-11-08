@@ -1,6 +1,7 @@
 import argparse
 import platform
 import sys
+import sysconfig
 import warnings
 from pathlib import Path
 from typing import Set
@@ -125,13 +126,13 @@ class CurrentEnv(PythonRun):
         return None
 
     def env_bin_dir(self):
-        return Path(sys.prefix) / "bin"
+        return Path(sysconfig.get_path("scripts"))
 
     def env_python(self):
         return sys.executable
 
     def env_site_package_dir(self):
-        return Path(sys.prefix) / "lib"
+        return Path(sysconfig.get_path("purelib"))
 
     @property
     def installer(self):

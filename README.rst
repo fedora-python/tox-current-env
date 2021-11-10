@@ -162,7 +162,7 @@ Use an isolated environment
 
 Running (especially third party software's) tests in your system Python environment is dangerous.
 Always use this plugin in an isolated environment,
-such as Python virtualenv, Linux container, virtual machine or chroot.
+such as a Linux container, virtual machine or chroot.
 You have been warned.
 
 Do not rely on virtualenv details

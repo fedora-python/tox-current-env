@@ -79,8 +79,13 @@ def tox_add_core_config(core_conf, config):
 def tox_add_env_config(env_conf, config):
     # This allows all external commands.
     # All of them are extenal for us.
-    loader = MemoryLoader(allowlist_externals=["*"])
-    config.core.loaders.insert(0, loader)
+    allow_external_cmds = MemoryLoader(allowlist_externals=["*"])
+    config.core.loaders.insert(0, allow_external_cmds)
+    # For print-deps-to and print-extras-to, use empty
+    # list of commands.
+    if config.options.print_deps_to or config.options.print_extras_to:
+        empty_commands = MemoryLoader(commands=[])
+        env_conf.loaders.insert(0, empty_commands)
 
 
 class CurrentEnv(PythonRun):
@@ -191,9 +196,6 @@ class PrintEnv(CurrentEnv):
                 file=self.options.print_extras_to,
             )
             self.options.print_extras_to.flush()
-
-        # We are done
-        sys.exit(0)
 
     @staticmethod
     def id():

@@ -6,8 +6,9 @@ import warnings
 from pathlib import Path
 from typing import Set
 
+from tox.config.loader.memory import MemoryLoader
 from tox.execute.api import Execute
-from tox.execute.local_sub_process import LocalSubProcessExecuteInstance
+from tox.execute.local_sub_process import LocalSubProcessExecutor
 from tox.plugin import impl
 from tox.report import HandledError
 from tox.tox_env.python.api import PythonInfo
@@ -74,6 +75,14 @@ def tox_add_core_config(core_conf, config):
     config.options.default_runner = "virtualenv"
 
 
+@impl
+def tox_add_env_config(env_conf, config):
+    # This allows all external commands.
+    # All of them are extenal for us.
+    loader = MemoryLoader(allowlist_externals=["*"])
+    config.core.loaders.insert(0, loader)
+
+
 class CurrentEnv(PythonRun):
     def __init__(self, create_args):
         self._executor = None
@@ -100,7 +109,7 @@ class CurrentEnv(PythonRun):
     @property
     def executor(self):
         if self._executor is None:
-            self._executor = CurrentEnvRunExecutor(self.options.is_colored)
+            self._executor = LocalSubProcessExecutor(self.options.is_colored)
         return self._executor
 
     def _get_python(self, base_python):
@@ -147,20 +156,6 @@ class CurrentEnv(PythonRun):
     @property
     def runs_on_platform(self):
         return sys.platform
-
-
-class CurrentEnvRunExecutor(Execute):
-    def build_instance(
-        self,
-        request,
-        options,
-        out,
-        err,
-    ):
-        # Disable check for the external commands,
-        # all of them are external for us.
-        request.allow = None
-        return LocalSubProcessExecuteInstance(request, options, out, err)
 
 
 class PrintEnv(CurrentEnv):

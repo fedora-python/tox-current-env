@@ -643,6 +643,20 @@ def test_self_is_not_installed(projdir, flag, usedevelop):
     assert 'test @ file://' not in result.stdout
 
 
+@pytest.mark.parametrize("externals", [None, "allowlist_externals", "whitelist_externals"])
+def test_externals(projdir, externals):
+    if externals == "allowlist_externals" and TOX_VERSION < ver("3.18"):
+        pytest.xfail("No support in old tox")
+    with modify_config(projdir / 'tox.ini') as config:
+        config['testenv']['commands'] = "echo assertme"
+        if externals is not None:
+            config['testenv'][externals] = "foo"
+    result = tox("-e", NATIVE_TOXENV, "--current-env", quiet=False)
+    assert result.returncode == 0
+    assert "assertme" in result.stdout
+    assert "test command found but not installed in testenv" not in (result.stdout + result.stderr)
+
+
 @pytest.mark.parametrize("usedevelop", [True, False])
 def test_self_is_installed_with_regular_tox(projdir, usedevelop):
     with modify_config(projdir / 'tox.ini') as config:

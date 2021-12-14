@@ -54,6 +54,21 @@ def _plugin_active(option):
     return option.current_env or option.print_deps_to or option.print_extras_to
 
 
+def _allow_all_externals(envconfig):
+    for option in ["allowlist_externals", "whitelist_externals"]:
+        # If either is set, we change it, as we cannot have both set at the same time:
+        if getattr(envconfig, option, None):
+            setattr(envconfig, option, "*")
+            break
+    else:
+        # If none was set, we set one of them, preferably the new one:
+        if hasattr(envconfig, "allowlist_externals"):
+            envconfig.allowlist_externals = "*"
+        else:
+            # unless we need to fallback to the old and deprecated
+            # TODO, drop this when we drop support for tox < 3.18
+            envconfig.whitelist_externals = "*"
+
 @tox.hookimpl
 def tox_configure(config):
     """Stores options in the config. Makes all commands external and skips sdist"""
@@ -72,8 +87,8 @@ def tox_configure(config):
     if _plugin_active(config.option):
         config.skipsdist = True
         for testenv in config.envconfigs:
-            config.envconfigs[testenv].whitelist_externals = "*"
             config.envconfigs[testenv].usedevelop = False
+            _allow_all_externals(config.envconfigs[testenv])
 
     if (getattr(config.option.print_deps_to, "name", object()) ==
         getattr(config.option.print_extras_to, "name", object())):

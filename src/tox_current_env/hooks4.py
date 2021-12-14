@@ -55,34 +55,45 @@ def tox_add_option(parser):
 
 @impl
 def tox_add_core_config(core_conf, config):
-    if config.options.current_env:
-        config.options.default_runner = "current-env"
+    opt = config.options
+
+    if opt.current_env or opt.print_deps_to or opt.print_extras_to:
+        # We do not want to install the main package.
+        # no_package is the same as skipsdist.
+        loader = MemoryLoader(no_package=True)
+        core_conf.loaders.insert(0, loader)
+
+    if opt.current_env:
+        opt.default_runner = "current-env"
         return
 
-    if getattr(config.options.print_deps_to, "name", object()) == getattr(
-        config.options.print_extras_to, "name", object()
+    if getattr(opt.print_deps_to, "name", object()) == getattr(
+        opt.print_extras_to, "name", object()
     ):
         raise RuntimeError(
             "The paths given to --print-deps-to and --print-extras-to cannot be identical."
         )
 
-    if config.options.print_deps_to or config.options.print_extras_to:
-        config.options.default_runner = "print-env"
+    if opt.print_deps_to or opt.print_extras_to:
+        opt.default_runner = "print-env"
         return
 
     # No options used - switch back to the standard runner
     # Workaround for: https://github.com/tox-dev/tox/issues/2264
-    config.options.default_runner = "virtualenv"
+    opt.default_runner = "virtualenv"
 
 
 @impl
 def tox_add_env_config(env_conf, config):
     # This allows all external commands.
     # All of them are extenal for us.
-    allow_external_cmds = MemoryLoader(allowlist_externals=["*"])
-    config.core.loaders.insert(0, allow_external_cmds)
+    # passenv is here because `TOX_TESTENV_PASSENV`
+    # no longer works in tox 4.
+    if config.options.current_env:
+        allow_external_cmds = MemoryLoader(allowlist_externals=["*"], passenv=["*"])
+        env_conf.loaders.insert(0, allow_external_cmds)
     # For print-deps-to and print-extras-to, use empty
-    # list of commands.
+    # list of commands so the tox does nothing.
     if config.options.print_deps_to or config.options.print_extras_to:
         empty_commands = MemoryLoader(commands=[])
         env_conf.loaders.insert(0, empty_commands)

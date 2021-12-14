@@ -125,16 +125,6 @@ class CurrentEnv(PythonRun):
         return self._executor
 
     def _get_python(self, base_python):
-        # TODO: Improve version check and error message
-        version_nodot = "".join(str(p) for p in sys.version_info[:2])
-        base_python = base_python[0]
-        if not base_python.endswith(version_nodot):
-            raise HandledError(
-                "Python version mismatch. "
-                f"Current version: {sys.version_info[:2]}, "
-                f"Requested environment: {base_python}"
-            )
-
         return PythonInfo(
             implementation=sys.implementation,
             version_info=sys.version_info,

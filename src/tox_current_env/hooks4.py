@@ -1,7 +1,9 @@
 import argparse
+import os
 import platform
 import sys
 import sysconfig
+import tempfile
 import warnings
 from pathlib import Path
 from typing import Set
@@ -146,7 +148,19 @@ class CurrentEnv(PythonRun):
         )
 
     def create_python_env(self):
-        return None
+        # Fake Python environment just to make sure all possible
+        # commands like python or python3 works.
+        self.tempdir = tempfile.TemporaryDirectory()
+        for suffix in (
+            "",
+            f"{sys.version_info.major}",
+            f"{sys.version_info.major}.{sys.version_info.minor}",
+        ):
+            os.symlink(sys.executable, Path(self.tempdir.name) / f"python{suffix}")
+        os.environ["PATH"] = ":".join((os.environ["PATH"], str(self.tempdir.name)))
+
+    def _teardown(self):
+        del self.tempdir
 
     def env_bin_dir(self):
         return Path(sysconfig.get_path("scripts"))

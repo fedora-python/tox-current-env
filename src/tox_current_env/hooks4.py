@@ -88,6 +88,13 @@ def tox_add_env_config(env_conf, config):
         env_conf.loaders.insert(0, empty_commands)
 
 
+class Installer:
+    """Noop installer"""
+
+    def install(self, *args, **kwargs):
+        return None
+
+
 class CurrentEnv(PythonRun):
     def __init__(self, create_args):
         self._executor = None
@@ -151,9 +158,7 @@ class CurrentEnv(PythonRun):
 
     @property
     def installer(self):
-        if self._installer is None:
-            self._installer = Pip(self)
-        return self._installer
+        return Installer()
 
     def prepend_env_var_path(self):
         return [self.env_bin_dir()]

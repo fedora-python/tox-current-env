@@ -10,7 +10,10 @@ from typing import Set
 
 from tox.config.loader.memory import MemoryLoader
 from tox.execute.api import Execute
-from tox.execute.local_sub_process import LocalSubProcessExecutor
+from tox.execute.local_sub_process import (
+    Execute,
+    LocalSubProcessExecuteInstance,
+)
 from tox.plugin import impl
 from tox.report import HandledError
 from tox.tox_env.python.api import PythonInfo
@@ -108,11 +111,28 @@ class Installer:
         return None
 
 
+class CurrentEnvLocalSubProcessExecutor(Execute):
+    def __init__(self, *args, **kwargs):
+        self.tempdir = kwargs.pop("tempdir")
+        super().__init__(*args, **kwargs)
+
+    def build_instance(
+        self,
+        request,
+        options,
+        out,
+        err,
+    ):
+        request.env["PATH"] = ":".join((str(self.tempdir.name), request.env.get("PATH", "")))
+        return LocalSubProcessExecuteInstance(request, options, out, err)
+
+
 class CurrentEnv(PythonRun):
     def __init__(self, create_args):
         self._executor = None
         self._installer = None
         self._path = []
+        self.tempdir = tempfile.TemporaryDirectory()
         super().__init__(create_args)
 
     @staticmethod
@@ -134,7 +154,7 @@ class CurrentEnv(PythonRun):
     @property
     def executor(self):
         if self._executor is None:
-            self._executor = LocalSubProcessExecutor(self.options.is_colored)
+            self._executor = CurrentEnvLocalSubProcessExecutor(self.options.is_colored, tempdir=self.tempdir)
         return self._executor
 
     def _get_python(self, base_python):
@@ -150,14 +170,12 @@ class CurrentEnv(PythonRun):
     def create_python_env(self):
         # Fake Python environment just to make sure all possible
         # commands like python or python3 works.
-        self.tempdir = tempfile.TemporaryDirectory()
         for suffix in (
             "",
             f"{sys.version_info.major}",
             f"{sys.version_info.major}.{sys.version_info.minor}",
         ):
             os.symlink(sys.executable, Path(self.tempdir.name) / f"python{suffix}")
-        os.environ["PATH"] = ":".join((os.environ["PATH"], str(self.tempdir.name)))
 
     def _teardown(self):
         del self.tempdir

@@ -14,12 +14,12 @@ setup(
     author_email="miro@hroncok.cz",
     url="https://github.com/fedora-python/tox-current-env",
     license="MIT",
-    version="0.0.6",
+    version="0.0.7",
     package_dir={"": "src"},
     packages=find_packages("src"),
     entry_points={"tox": ["current-env = tox_current_env.hooks"]},
     install_requires=[
-        "tox>=3.15",
+        "tox>=3.15,<4",
         "importlib_metadata; python_version < '3.8'"
     ],
     python_requires=">=3.6",

@@ -59,8 +59,8 @@ def tox_add_option(parser):
 
 
 @impl
-def tox_add_core_config(core_conf, config):
-    opt = config.options
+def tox_add_core_config(core_conf, state):
+    opt = state.conf.options
 
     if opt.current_env or opt.print_deps_to or opt.print_extras_to:
         # We do not want to install the main package.
@@ -89,17 +89,18 @@ def tox_add_core_config(core_conf, config):
 
 
 @impl
-def tox_add_env_config(env_conf, config):
+def tox_add_env_config(env_conf, state):
+    opt = state.conf.options
     # This allows all external commands.
     # All of them are extenal for us.
     # passenv is here because `TOX_TESTENV_PASSENV`
     # no longer works in tox 4.
-    if config.options.current_env:
+    if opt.current_env:
         allow_external_cmds = MemoryLoader(allowlist_externals=["*"], passenv=["*"])
         env_conf.loaders.insert(0, allow_external_cmds)
     # For print-deps-to and print-extras-to, use empty
     # list of commands so the tox does nothing.
-    if config.options.print_deps_to or config.options.print_extras_to:
+    if opt.print_deps_to or opt.print_extras_to:
         empty_commands = MemoryLoader(commands=[])
         env_conf.loaders.insert(0, empty_commands)
 

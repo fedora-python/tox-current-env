@@ -113,10 +113,6 @@ class Installer:
 
 
 class CurrentEnvLocalSubProcessExecutor(Execute):
-    def __init__(self, *args, **kwargs):
-        self.tempdir = kwargs.pop("tempdir")
-        super().__init__(*args, **kwargs)
-
     def build_instance(
         self,
         request,
@@ -124,7 +120,9 @@ class CurrentEnvLocalSubProcessExecutor(Execute):
         out,
         err,
     ):
-        request.env["PATH"] = ":".join((str(self.tempdir.name), request.env.get("PATH", "")))
+        request.env["PATH"] = ":".join(
+            (str(options._env.env_dir / "bin"), request.env.get("PATH", ""))
+        )
         return LocalSubProcessExecuteInstance(request, options, out, err)
 
 
@@ -133,7 +131,6 @@ class CurrentEnv(PythonRun):
         self._executor = None
         self._installer = None
         self._path = []
-        self.tempdir = tempfile.TemporaryDirectory()
         super().__init__(create_args)
 
     @staticmethod
@@ -155,7 +152,7 @@ class CurrentEnv(PythonRun):
     @property
     def executor(self):
         if self._executor is None:
-            self._executor = CurrentEnvLocalSubProcessExecutor(self.options.is_colored, tempdir=self.tempdir)
+            self._executor = CurrentEnvLocalSubProcessExecutor(self.options.is_colored)
         return self._executor
 
     def _get_python(self, base_python):
@@ -169,17 +166,19 @@ class CurrentEnv(PythonRun):
         )
 
     def create_python_env(self):
-        # Fake Python environment just to make sure all possible
-        # commands like python or python3 works.
+        """Fake Python environment just to make sure all possible
+        commands like python or python3 works."""
+        bindir = self.env_dir / "bin"
+        if not bindir.exists():
+            os.mkdir(bindir)
         for suffix in (
             "",
             f"{sys.version_info.major}",
             f"{sys.version_info.major}.{sys.version_info.minor}",
         ):
-            os.symlink(sys.executable, Path(self.tempdir.name) / f"python{suffix}")
-
-    def _teardown(self):
-        del self.tempdir
+            symlink = bindir / f"python{suffix}"
+            if not symlink.exists():
+                os.symlink(sys.executable, symlink)
 
     def env_bin_dir(self):
         return Path(sysconfig.get_path("scripts"))
@@ -206,18 +205,6 @@ class PrintEnv(CurrentEnv):
     def __init__(self, create_args):
         super().__init__(create_args)
 
-        # As soon as this environment has enough info to do its job,
-        # do it and nothing more.
-
-        if self.options.print_deps_to:
-            print(
-                *self.core["requires"],
-                *self.conf["deps"].lines(),
-                sep="\n",
-                file=self.options.print_deps_to,
-            )
-            self.options.print_deps_to.flush()
-
         if self.options.print_extras_to:
             if "extras" not in self.conf:
                 # Unfortunately, if there is skipsdist/no_package or skip_install
@@ -229,6 +216,24 @@ class PrintEnv(CurrentEnv):
                     default=set(),
                     desc="extras to install of the target package",
                 )
+
+    def create_python_env(self):
+        """We don't need any environment for this plugin"""
+        return None
+
+    def prepend_env_var_path(self):
+        """Usage of this method for the core of this plugin is far from perfect
+        but this method is called every time even without recreated environment"""
+        if self.options.print_deps_to:
+            print(
+                *self.core["requires"],
+                *self.conf["deps"].lines(),
+                sep="\n",
+                file=self.options.print_deps_to,
+            )
+            self.options.print_deps_to.flush()
+
+        if self.options.print_extras_to:
             print(
                 *self.conf["extras"],
                 sep="\n",

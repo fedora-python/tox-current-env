@@ -21,20 +21,22 @@ jobs:
         tox_env:
         # This information is repeated in tox.ini
         # (see https://github.com/fedora-python/tox-github-action/issues/8)
-        - py36-tox315
-        - py37-tox315
-        - py38-tox315
-        - py39-tox315
-
+        # Generate it by: tox -l | sed "s/^/- /"
         - py36-toxrelease
-        - py37-toxrelease
-        - py38-toxrelease
-        - py39-toxrelease
-
         - py36-toxmaster
+        - py36-toxtox315
+        - py37-toxrelease
         - py37-toxmaster
+        - py37-toxtox315
+        - py38-toxrelease
         - py38-toxmaster
+        - py38-toxtox315
+        - py39-toxrelease
         - py39-toxmaster
+        - py39-toxtox315
+        - py310-toxrelease
+        - py310-toxmaster
+        - py310-toxtox315
 
     # Use GitHub's Linux Docker host
     runs-on: ubuntu-latest

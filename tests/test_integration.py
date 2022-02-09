@@ -16,6 +16,7 @@ import pytest
 
 
 NATIVE_TOXENV = f"py{sys.version_info[0]}{sys.version_info[1]}"
+NATIVE_SITE_PACKAGES = f"lib/python{sys.version_info[0]}.{sys.version_info[1]}/site-packages"
 NATIVE_EXECUTABLE = str(pathlib.Path(sys.executable).resolve())
 FIXTURES_DIR = pathlib.Path(__file__).parent / "fixtures"
 DOT_TOX = pathlib.Path("./.tox")
@@ -100,9 +101,9 @@ def is_available(python):
     return True
 
 
-needs_py36789 = pytest.mark.skipif(
-    not all((is_available(f"python3.{x}") for x in range(6, 10))),
-    reason="This test needs python3.6, 3.7, 3.8 and 3.9 available in $PATH",
+needs_py3678910 = pytest.mark.skipif(
+    not all((is_available(f"python3.{x}") for x in range(6, 12))),
+    reason="This test needs python3.6, 3.7, 3.8, 3.9 and 3.10 available in $PATH",
 )
 
 
@@ -113,7 +114,7 @@ def test_native_toxenv_current_env():
     assert not (DOT_TOX / NATIVE_TOXENV / "lib").is_dir()
 
 
-@needs_py36789
+@needs_py3678910
 def test_all_toxenv_current_env():
     result = tox("--current-env", check=False)
     assert NATIVE_EXEC_PREFIX_MSG in result.stdout.splitlines()
@@ -132,7 +133,7 @@ def test_missing_toxenv_current_env(python):
     assert result.returncode > 0
 
 
-@needs_py36789
+@needs_py3678910
 def test_all_toxenv_current_env_skip_missing():
     result = tox("--current-env", "--skip-missing-interpreters", check=False)
     assert "InterpreterMismatch:" in result.stdout
@@ -255,11 +256,14 @@ def test_allenvs_print_deps(print_deps_stdout_arg):
         py
         six
         py
+        six
+        py
         ___________________________________ summary ____________________________________
           py36: commands succeeded
           py37: commands succeeded
           py38: commands succeeded
           py39: commands succeeded
+          py310: commands succeeded
           congratulations :)
         """
     ).lstrip()
@@ -278,18 +282,21 @@ def test_allenvs_print_extras(print_extras_stdout_arg):
         full
         dev
         full
+        dev
+        full
         ___________________________________ summary ____________________________________
           py36: commands succeeded
           py37: commands succeeded
           py38: commands succeeded
           py39: commands succeeded
+          py310: commands succeeded
           congratulations :)
         """
     ).lstrip()
     assert result.stdout == expected
 
 
-@pytest.mark.parametrize("toxenv", ["py36", "py37", "py38", "py39"])
+@pytest.mark.parametrize("toxenv", ["py36", "py37", "py38", "py39", "py310"])
 def test_print_deps_to_file(toxenv, tmp_path):
     depspath = tmp_path / "deps"
     result = tox("-e", toxenv, "--print-deps-to", str(depspath))
@@ -304,7 +311,7 @@ def test_print_deps_to_file(toxenv, tmp_path):
     assert result.stdout == expected
 
 
-@pytest.mark.parametrize("toxenv", ["py36", "py37", "py38", "py39"])
+@pytest.mark.parametrize("toxenv", ["py36", "py37", "py38", "py39", "py310"])
 def test_print_extras_to_file(toxenv, tmp_path):
     extraspath = tmp_path / "extras"
     result = tox("-e", toxenv, "--print-extras-to", str(extraspath))
@@ -323,7 +330,7 @@ def test_print_extras_to_file(toxenv, tmp_path):
 def test_allenvs_print_deps_to_file(tmp_path, option):
     depspath = tmp_path / "deps"
     result = tox(option, str(depspath))
-    assert depspath.read_text().splitlines() == ["six", "py"] * 4
+    assert depspath.read_text().splitlines() == ["six", "py"] * 5
     expected = textwrap.dedent(
         """
         ___________________________________ summary ____________________________________
@@ -331,6 +338,7 @@ def test_allenvs_print_deps_to_file(tmp_path, option):
           py37: commands succeeded
           py38: commands succeeded
           py39: commands succeeded
+          py310: commands succeeded
           congratulations :)
         """
     ).lstrip()
@@ -341,7 +349,7 @@ def test_allenvs_print_deps_to_file(tmp_path, option):
 def test_allenvs_print_extras_to_file(tmp_path, option):
     extraspath = tmp_path / "extras"
     result = tox(option, str(extraspath))
-    assert extraspath.read_text().splitlines() == ["dev", "full"] * 4
+    assert extraspath.read_text().splitlines() == ["dev", "full"] * 5
     expected = textwrap.dedent(
         """
         ___________________________________ summary ____________________________________
@@ -349,6 +357,7 @@ def test_allenvs_print_extras_to_file(tmp_path, option):
           py37: commands succeeded
           py38: commands succeeded
           py39: commands succeeded
+          py310: commands succeeded
           congratulations :)
         """
     ).lstrip()
@@ -447,16 +456,17 @@ def test_print_deps_only_print_deps_to_file_are_mutually_exclusive():
     assert "cannot be used together" in result.stderr
 
 
-@needs_py36789
+@needs_py3678910
 def test_regular_run():
     result = tox()
-    lines = sorted(result.stdout.splitlines()[:4])
+    lines = result.stdout.splitlines()[:5]
     assert "/.tox/py36 is the exec_prefix" in lines[0]
     assert "/.tox/py37 is the exec_prefix" in lines[1]
     assert "/.tox/py38 is the exec_prefix" in lines[2]
     assert "/.tox/py39 is the exec_prefix" in lines[3]
+    assert "/.tox/py310 is the exec_prefix" in lines[4]
     assert "congratulations" in result.stdout
-    for y in 6, 7, 8, 9:
+    for y in 6, 7, 8, 9, 10:
         for pkg in "py", "six", "test":
             sitelib = DOT_TOX / f"py3{y}/lib/python3.{y}/site-packages"
             assert sitelib.is_dir()
@@ -470,7 +480,7 @@ def test_regular_run_native_toxenv():
     assert "congratulations" in result.stdout
     for pkg in "py", "six", "test":
         sitelib = (
-            DOT_TOX / f"{NATIVE_TOXENV}/lib/python3.{NATIVE_TOXENV[-1]}/site-packages"
+            DOT_TOX / f"{NATIVE_TOXENV}/{NATIVE_SITE_PACKAGES}"
         )
         assert sitelib.is_dir()
         assert len(list(sitelib.glob(f"{pkg}-*.dist-info"))) == 1
@@ -565,7 +575,7 @@ def test_regular_recreate_after_print_deps(print_deps_stdout_arg):
 
     result = tox("-re", NATIVE_TOXENV)
     assert result.stdout.splitlines()[0] != NATIVE_EXEC_PREFIX_MSG
-    sitelib = DOT_TOX / f"{NATIVE_TOXENV}/lib/python3.{NATIVE_TOXENV[-1]}/site-packages"
+    sitelib = DOT_TOX / f"{NATIVE_TOXENV}/{NATIVE_SITE_PACKAGES}"
     assert sitelib.is_dir()
     assert len(list(sitelib.glob("test-*.dist-info"))) == 1
 

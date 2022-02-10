@@ -157,6 +157,17 @@ To get a list of names of extras, run:
 Caveats, warnings and limitations
 ---------------------------------
 
+tox 4
+~~~~~
+
+The plugin is available also for tox 4. Differences in behavior between tox 3 and 4 are these:
+
+- ``--recreate`` is no longer needed when you switch from the plugin back to standard tox. Tox
+detects it and handles the recreation automatically.
+- The plugin does not check the requested Python version nor the environment name. If you let
+it run for multiple environments they'll all use the same Python.
+- Deprecated ``--print-deps-only`` option is no longer available.
+
 Use an isolated environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

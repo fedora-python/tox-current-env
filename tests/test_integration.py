@@ -1,111 +1,27 @@
-import functools
 import os
-import pathlib
 import re
 import shutil
 import subprocess
 import sys
 import textwrap
-import warnings
-import configparser
-import contextlib
-
-from packaging.version import parse as ver
 
 import pytest
+from packaging.version import parse as ver
 
-
-NATIVE_TOXENV = f"py{sys.version_info[0]}{sys.version_info[1]}"
-NATIVE_SITE_PACKAGES = f"lib/python{sys.version_info[0]}.{sys.version_info[1]}/site-packages"
-NATIVE_EXECUTABLE = str(pathlib.Path(sys.executable).resolve())
-FIXTURES_DIR = pathlib.Path(__file__).parent / "fixtures"
-DOT_TOX = pathlib.Path("./.tox")
-
-
-def _exec_prefix(executable):
-    """Returns sys.exec_prefix for the given executable"""
-    cmd = (executable, "-c", "import sys; print(sys.exec_prefix)")
-    return subprocess.check_output(cmd, encoding="utf-8").strip()
-
-
-NATIVE_EXEC_PREFIX = _exec_prefix(NATIVE_EXECUTABLE)
-NATIVE_EXEC_PREFIX_MSG = f"{NATIVE_EXEC_PREFIX} is the exec_prefix"
-
-
-@pytest.fixture(autouse=True)
-def projdir(tmp_path, monkeypatch):
-    pwd = tmp_path / "projdir"
-    pwd.mkdir()
-    for fname in "tox.ini", "setup.py":
-        shutil.copy(FIXTURES_DIR / fname, pwd)
-    monkeypatch.chdir(pwd)
-    return pwd
-
-
-@pytest.fixture(params=('--print-deps-only', '--print-deps-to-file=-', '--print-deps-to=-'))
-def print_deps_stdout_arg(request):
-    """Argument for printing deps to stdout"""
-    return request.param
-
-
-@pytest.fixture(params=('--print-extras-to-file=-', '--print-extras-to=-'))
-def print_extras_stdout_arg(request):
-    """Argument for printing extras to stdout"""
-    return request.param
-
-
-@contextlib.contextmanager
-def modify_config(tox_ini_path):
-    """Context manager that allows modifying the given tox config file
-
-    A statement like::
-
-        with prepare_config(projdir) as config:
-
-    will make `config` a ConfigParser instance that is saved at the end
-    of the `with` block.
-    """
-    config = configparser.ConfigParser()
-    config.read(tox_ini_path)
-    yield config
-    with open(tox_ini_path, 'w') as tox_ini_file:
-        config.write(tox_ini_file)
-
-
-def tox(*args, quiet=True, **kwargs):
-    kwargs.setdefault("encoding", "utf-8")
-    kwargs.setdefault("stdout", subprocess.PIPE)
-    kwargs.setdefault("stderr", subprocess.PIPE)
-    kwargs.setdefault("check", True)
-    q = ("-q",) if quiet else ()
-    try:
-        cp = subprocess.run((sys.executable, "-m", "tox") + q + args, **kwargs)
-    except subprocess.CalledProcessError as e:
-        print(e.stdout, file=sys.stdout)
-        print(e.stderr, file=sys.stderr)
-        raise
-    print(cp.stdout, file=sys.stdout)
-    print(cp.stderr, file=sys.stderr)
-    return cp
-
-
-TOX_VERSION = ver(tox("--version").stdout.split(" ")[0])
-
-
-@functools.lru_cache(maxsize=8)
-def is_available(python):
-    try:
-        subprocess.run((python, "--version"))
-    except FileNotFoundError:
-        return False
-    return True
-
-
-needs_py3678910 = pytest.mark.skipif(
-    not all((is_available(f"python3.{x}") for x in range(6, 12))),
-    reason="This test needs python3.6, 3.7, 3.8, 3.9 and 3.10 available in $PATH",
+from utils import (
+    DOT_TOX,
+    NATIVE_EXEC_PREFIX_MSG,
+    NATIVE_EXECUTABLE,
+    NATIVE_SITE_PACKAGES,
+    NATIVE_TOXENV,
+    TOX_VERSION,
+    envs_from_tox_ini,
+    is_available,
+    modify_config,
+    needs_all_pythons,
+    tox,
+    tox_footer,
 )
-
 
 
 def test_native_toxenv_current_env():
@@ -114,7 +30,7 @@ def test_native_toxenv_current_env():
     assert not (DOT_TOX / NATIVE_TOXENV / "lib").is_dir()
 
 
-@needs_py3678910
+@needs_all_pythons
 def test_all_toxenv_current_env():
     result = tox("--current-env", check=False)
     assert NATIVE_EXEC_PREFIX_MSG in result.stdout.splitlines()
@@ -133,7 +49,7 @@ def test_missing_toxenv_current_env(python):
     assert result.returncode > 0
 
 
-@needs_py3678910
+@needs_all_pythons
 def test_all_toxenv_current_env_skip_missing():
     result = tox("--current-env", "--skip-missing-interpreters", check=False)
     assert "InterpreterMismatch:" in result.stdout
@@ -141,22 +57,20 @@ def test_all_toxenv_current_env_skip_missing():
     assert result.returncode == 0
 
 
-@pytest.mark.parametrize("toxenv", ["py36", "py37", "py38", "py39"])
+@pytest.mark.parametrize("toxenv", envs_from_tox_ini())
 def test_print_deps(toxenv, print_deps_stdout_arg):
     result = tox("-e", toxenv, print_deps_stdout_arg)
     expected = textwrap.dedent(
         f"""
         six
         py
-        ___________________________________ summary ____________________________________
-          {toxenv}: commands succeeded
-          congratulations :)
+        {tox_footer(toxenv)}
         """
     ).lstrip()
     assert result.stdout == expected
 
 
-@pytest.mark.parametrize("toxenv", ["py36", "py37", "py38", "py39"])
+@pytest.mark.parametrize("toxenv", envs_from_tox_ini())
 @pytest.mark.parametrize("pre_post", ["pre", "post", "both"])
 def test_print_deps_with_commands_pre_post(projdir, toxenv, pre_post, print_deps_stdout_arg):
     with modify_config(projdir / 'tox.ini') as config:
@@ -170,18 +84,16 @@ def test_print_deps_with_commands_pre_post(projdir, toxenv, pre_post, print_deps
         f"""
         six
         py
-        ___________________________________ summary ____________________________________
-          {toxenv}: commands succeeded
-          congratulations :)
+        {tox_footer(toxenv)}
         """
     ).lstrip()
     assert result.stdout == expected
     assert result.stderr == ""
 
 
-@pytest.mark.parametrize("toxenv", ["py36", "py37", "py38", "py39"])
+@pytest.mark.parametrize("toxenv", envs_from_tox_ini())
 def test_print_deps_with_tox_minversion(projdir, toxenv, print_deps_stdout_arg):
-    with modify_config(projdir / 'tox.ini') as config:
+    with modify_config(projdir / "tox.ini") as config:
         config["tox"]["minversion"] = "3.13"
     result = tox("-e", toxenv, print_deps_stdout_arg)
     expected = textwrap.dedent(
@@ -189,18 +101,16 @@ def test_print_deps_with_tox_minversion(projdir, toxenv, print_deps_stdout_arg):
         tox >= 3.13
         six
         py
-        ___________________________________ summary ____________________________________
-          {toxenv}: commands succeeded
-          congratulations :)
+        {tox_footer(toxenv)}
         """
     ).lstrip()
     assert result.stdout == expected
 
 
 @pytest.mark.xfail(TOX_VERSION < ver("3.22"), reason="No support in old tox")
-@pytest.mark.parametrize("toxenv", ["py36", "py37", "py38", "py39"])
+@pytest.mark.parametrize("toxenv", envs_from_tox_ini())
 def test_print_deps_with_tox_requires(projdir, toxenv, print_deps_stdout_arg):
-    with modify_config(projdir / 'tox.ini') as config:
+    with modify_config(projdir / "tox.ini") as config:
         config["tox"]["requires"] = "\n    setuptools > 30\n    pluggy"
     result = tox("-e", toxenv, print_deps_stdout_arg)
     expected = textwrap.dedent(
@@ -209,18 +119,18 @@ def test_print_deps_with_tox_requires(projdir, toxenv, print_deps_stdout_arg):
         pluggy
         six
         py
-        ___________________________________ summary ____________________________________
-          {toxenv}: commands succeeded
-          congratulations :)
+        {tox_footer(toxenv)}
         """
     ).lstrip()
     assert result.stdout == expected
 
 
 @pytest.mark.xfail(TOX_VERSION < ver("3.22"), reason="No support in old tox")
-@pytest.mark.parametrize("toxenv", ["py36", "py37", "py38", "py39"])
-def test_print_deps_with_tox_minversion_and_requires(projdir, toxenv, print_deps_stdout_arg):
-    with modify_config(projdir / 'tox.ini') as config:
+@pytest.mark.parametrize("toxenv", envs_from_tox_ini())
+def test_print_deps_with_tox_minversion_and_requires(
+    projdir, toxenv, print_deps_stdout_arg
+):
+    with modify_config(projdir / "tox.ini") as config:
         config["tox"]["minversion"] = "3.13"
         config["tox"]["requires"] = "\n    setuptools > 30\n    pluggy"
     result = tox("-e", toxenv, print_deps_stdout_arg)
@@ -231,30 +141,26 @@ def test_print_deps_with_tox_minversion_and_requires(projdir, toxenv, print_deps
         pluggy
         six
         py
-        ___________________________________ summary ____________________________________
-          {toxenv}: commands succeeded
-          congratulations :)
+        {tox_footer(toxenv)}
         """
     ).lstrip()
     assert result.stdout == expected
 
 
-@pytest.mark.parametrize("toxenv", ["py36", "py37", "py38", "py39"])
+@pytest.mark.parametrize("toxenv", envs_from_tox_ini())
 def test_print_extras(toxenv, print_extras_stdout_arg):
     result = tox("-e", toxenv, print_extras_stdout_arg)
     expected = textwrap.dedent(
         f"""
         dev
         full
-        ___________________________________ summary ____________________________________
-          {toxenv}: commands succeeded
-          congratulations :)
+        {tox_footer(toxenv)}
         """
     ).lstrip()
     assert result.stdout == expected
 
 
-@pytest.mark.parametrize("toxenv", ["py36", "py37", "py38", "py39"])
+@pytest.mark.parametrize("toxenv", envs_from_tox_ini())
 @pytest.mark.parametrize("pre_post", ["pre", "post", "both"])
 def test_print_extras_with_commands_pre_post(projdir, toxenv, pre_post, print_extras_stdout_arg):
     with modify_config(projdir / 'tox.ini') as config:
@@ -268,20 +174,20 @@ def test_print_extras_with_commands_pre_post(projdir, toxenv, pre_post, print_ex
         f"""
         dev
         full
-        ___________________________________ summary ____________________________________
-          {toxenv}: commands succeeded
-          congratulations :)
+        {tox_footer(toxenv)}
         """
     ).lstrip()
     assert result.stdout == expected
     assert result.stderr == ""
 
 
-@pytest.mark.parametrize("toxenv", ["py36", "py37", "py38", "py39"])
+@pytest.mark.parametrize("toxenv", envs_from_tox_ini())
 def test_print_deps_only_deprecated(toxenv):
     result = tox(
-        "-e", toxenv, '--print-deps-only',
-        env={**os.environ, 'PYTHONWARNINGS': 'always'},
+        "-e",
+        toxenv,
+        "--print-deps-only",
+        env={**os.environ, "PYTHONWARNINGS": "always"},
     )
     waring_text = (
         "DeprecationWarning: --print-deps-only is deprecated; "
@@ -292,119 +198,69 @@ def test_print_deps_only_deprecated(toxenv):
 
 def test_allenvs_print_deps(print_deps_stdout_arg):
     result = tox(print_deps_stdout_arg)
-    expected = textwrap.dedent(
-        """
-        six
-        py
-        six
-        py
-        six
-        py
-        six
-        py
-        six
-        py
-        ___________________________________ summary ____________________________________
-          py36: commands succeeded
-          py37: commands succeeded
-          py38: commands succeeded
-          py39: commands succeeded
-          py310: commands succeeded
-          congratulations :)
-        """
-    ).lstrip()
+    expected = ""
+    for env in envs_from_tox_ini():
+        expected += "six\npy\n"
+    expected += tox_footer(spaces=0) + "\n"
     assert result.stdout == expected
 
 
 def test_allenvs_print_extras(print_extras_stdout_arg):
     result = tox(print_extras_stdout_arg)
-    expected = textwrap.dedent(
-        """
-        dev
-        full
-        dev
-        full
-        dev
-        full
-        dev
-        full
-        dev
-        full
-        ___________________________________ summary ____________________________________
-          py36: commands succeeded
-          py37: commands succeeded
-          py38: commands succeeded
-          py39: commands succeeded
-          py310: commands succeeded
-          congratulations :)
-        """
-    ).lstrip()
+    expected = ""
+    for env in envs_from_tox_ini():
+        expected += "dev\nfull\n"
+    expected += tox_footer(spaces=0) + "\n"
     assert result.stdout == expected
 
 
-@pytest.mark.parametrize("toxenv", ["py36", "py37", "py38", "py39", "py310"])
+@pytest.mark.parametrize("toxenv", envs_from_tox_ini())
 def test_print_deps_to_file(toxenv, tmp_path):
     depspath = tmp_path / "deps"
     result = tox("-e", toxenv, "--print-deps-to", str(depspath))
     assert depspath.read_text().splitlines() == ["six", "py"]
     expected = textwrap.dedent(
         f"""
-        ___________________________________ summary ____________________________________
-          {toxenv}: commands succeeded
-          congratulations :)
+        {tox_footer(toxenv)}
         """
     ).lstrip()
     assert result.stdout == expected
 
 
-@pytest.mark.parametrize("toxenv", ["py36", "py37", "py38", "py39", "py310"])
+@pytest.mark.parametrize("toxenv", envs_from_tox_ini())
 def test_print_extras_to_file(toxenv, tmp_path):
     extraspath = tmp_path / "extras"
     result = tox("-e", toxenv, "--print-extras-to", str(extraspath))
     assert extraspath.read_text().splitlines() == ["dev", "full"]
     expected = textwrap.dedent(
         f"""
-        ___________________________________ summary ____________________________________
-          {toxenv}: commands succeeded
-          congratulations :)
+        {tox_footer(toxenv)}
         """
     ).lstrip()
     assert result.stdout == expected
 
 
-@pytest.mark.parametrize('option', ('--print-deps-to', '--print-deps-to-file'))
+@pytest.mark.parametrize("option", ("--print-deps-to", "--print-deps-to-file"))
 def test_allenvs_print_deps_to_file(tmp_path, option):
     depspath = tmp_path / "deps"
     result = tox(option, str(depspath))
     assert depspath.read_text().splitlines() == ["six", "py"] * 5
     expected = textwrap.dedent(
-        """
-        ___________________________________ summary ____________________________________
-          py36: commands succeeded
-          py37: commands succeeded
-          py38: commands succeeded
-          py39: commands succeeded
-          py310: commands succeeded
-          congratulations :)
+        f"""
+        {tox_footer()}
         """
     ).lstrip()
     assert result.stdout == expected
 
 
-@pytest.mark.parametrize('option', ('--print-extras-to', '--print-extras-to-file'))
+@pytest.mark.parametrize("option", ("--print-extras-to", "--print-extras-to-file"))
 def test_allenvs_print_extras_to_file(tmp_path, option):
     extraspath = tmp_path / "extras"
     result = tox(option, str(extraspath))
     assert extraspath.read_text().splitlines() == ["dev", "full"] * 5
     expected = textwrap.dedent(
-        """
-        ___________________________________ summary ____________________________________
-          py36: commands succeeded
-          py37: commands succeeded
-          py38: commands succeeded
-          py39: commands succeeded
-          py310: commands succeeded
-          congratulations :)
+        f"""
+        {tox_footer()}
         """
     ).lstrip()
     assert result.stdout == expected
@@ -413,7 +269,7 @@ def test_allenvs_print_extras_to_file(tmp_path, option):
 def test_allenvs_print_deps_to_existing_file(tmp_path):
     depspath = tmp_path / "deps"
     depspath.write_text("nada")
-    result = tox("--print-deps-to", str(depspath))
+    _ = tox("--print-deps-to", str(depspath))
     lines = depspath.read_text().splitlines()
     assert "nada" not in lines
     assert "six" in lines
@@ -423,7 +279,7 @@ def test_allenvs_print_deps_to_existing_file(tmp_path):
 def test_allenvs_print_extras_to_existing_file(tmp_path):
     extraspath = tmp_path / "extras"
     extraspath.write_text("nada")
-    result = tox("--print-extras-to", str(extraspath))
+    _ = tox("--print-extras-to", str(extraspath))
     lines = extraspath.read_text().splitlines()
     assert "nada" not in lines
     assert "dev" in lines
@@ -432,14 +288,15 @@ def test_allenvs_print_extras_to_existing_file(tmp_path):
 
 @pytest.mark.parametrize("deps_stdout", [True, False])
 @pytest.mark.parametrize("extras_stdout", [True, False])
-def test_allenvs_print_deps_to_file_print_extras_to_other_file(tmp_path, deps_stdout, extras_stdout):
+def test_allenvs_print_deps_to_file_print_extras_to_other_file(
+    tmp_path, deps_stdout, extras_stdout
+):
     if deps_stdout and extras_stdout:
         pytest.xfail("Unsupported combination of parameters")
 
     depspath = "-" if deps_stdout else tmp_path / "deps"
     extraspath = "-" if extras_stdout else tmp_path / "extras"
-    result = tox("--print-deps-to", str(depspath),
-                 "--print-extras-to", str(extraspath))
+    result = tox("--print-deps-to", str(depspath), "--print-extras-to", str(extraspath))
     if deps_stdout:
         depslines = result.stdout.splitlines()
         extraslines = extraspath.read_text().splitlines()
@@ -466,8 +323,10 @@ def test_print_deps_extras_to_same_file_is_not_possible(tmp_path):
     result = tox(
         "-e",
         NATIVE_TOXENV,
-        "--print-deps-to", str(depsextraspath),
-        "--print-extras-to", str(depsextraspath),
+        "--print-deps-to",
+        str(depsextraspath),
+        "--print-extras-to",
+        str(depsextraspath),
         check=False,
     )
     assert result.returncode > 0
@@ -475,9 +334,10 @@ def test_print_deps_extras_to_same_file_is_not_possible(tmp_path):
 
 
 def test_print_deps_extras_to_stdout_is_not_possible(
-        tmp_path,
-        print_deps_stdout_arg,
-        print_extras_stdout_arg,):
+    tmp_path,
+    print_deps_stdout_arg,
+    print_extras_stdout_arg,
+):
     result = tox(
         "-e",
         NATIVE_TOXENV,
@@ -502,19 +362,17 @@ def test_print_deps_only_print_deps_to_file_are_mutually_exclusive():
     assert "cannot be used together" in result.stderr
 
 
-@needs_py3678910
+@needs_all_pythons
 def test_regular_run():
     result = tox()
     lines = result.stdout.splitlines()[:5]
-    assert "/.tox/py36 is the exec_prefix" in lines[0]
-    assert "/.tox/py37 is the exec_prefix" in lines[1]
-    assert "/.tox/py38 is the exec_prefix" in lines[2]
-    assert "/.tox/py39 is the exec_prefix" in lines[3]
-    assert "/.tox/py310 is the exec_prefix" in lines[4]
+    for line, env in zip(lines, envs_from_tox_ini()):
+        assert f"/.tox/{env} is the exec_prefix" in line
     assert "congratulations" in result.stdout
-    for y in 6, 7, 8, 9, 10:
+    for env in envs_from_tox_ini():
+        major, minor = re.match(r"py(\d)(\d+)", env).groups()
         for pkg in "py", "six", "test":
-            sitelib = DOT_TOX / f"py3{y}/lib/python3.{y}/site-packages"
+            sitelib = DOT_TOX / f"{env}/lib/python{major}.{minor}/site-packages"
             assert sitelib.is_dir()
             assert len(list(sitelib.glob(f"{pkg}-*.dist-info"))) == 1
 
@@ -525,9 +383,7 @@ def test_regular_run_native_toxenv():
     assert f"/.tox/{NATIVE_TOXENV} is the exec_prefix" in lines[0]
     assert "congratulations" in result.stdout
     for pkg in "py", "six", "test":
-        sitelib = (
-            DOT_TOX / f"{NATIVE_TOXENV}/{NATIVE_SITE_PACKAGES}"
-        )
+        sitelib = DOT_TOX / f"{NATIVE_TOXENV}/{NATIVE_SITE_PACKAGES}"
         assert sitelib.is_dir()
         assert len(list(sitelib.glob(f"{pkg}-*.dist-info"))) == 1
 
@@ -643,9 +499,7 @@ def test_print_deps_without_python_command(tmp_path, print_deps_stdout_arg):
         f"""
         six
         py
-        ___________________________________ summary ____________________________________
-          {NATIVE_TOXENV}: commands succeeded
-          congratulations :)
+        {tox_footer(NATIVE_TOXENV)}
         """
     ).lstrip()
     assert result.stdout == expected
@@ -679,14 +533,16 @@ def test_noquiet_installed_packages(flag):
         assert all(re.match(r"\S+==\S+", p) for p in packages)
 
 
-@pytest.mark.parametrize("flag", ["--print-deps-to=-", "--print-extras-to=-", "--current-env"])
+@pytest.mark.parametrize(
+    "flag", ["--print-deps-to=-", "--print-extras-to=-", "--current-env"]
+)
 @pytest.mark.parametrize("usedevelop", [True, False])
 def test_self_is_not_installed(projdir, flag, usedevelop):
-    with modify_config(projdir / 'tox.ini') as config:
-        config['testenv']['usedevelop'] = str(usedevelop)
+    with modify_config(projdir / "tox.ini") as config:
+        config["testenv"]["usedevelop"] = str(usedevelop)
     result = tox("-e", NATIVE_TOXENV, flag, quiet=False)
-    assert 'test==0.0.0' not in result.stdout
-    assert 'test @ file://' not in result.stdout
+    assert "test==0.0.0" not in result.stdout
+    assert "test @ file://" not in result.stdout
 
 
 @pytest.mark.parametrize("externals", [None, "allowlist_externals", "whitelist_externals"])
@@ -705,8 +561,7 @@ def test_externals(projdir, externals):
 
 @pytest.mark.parametrize("usedevelop", [True, False])
 def test_self_is_installed_with_regular_tox(projdir, usedevelop):
-    with modify_config(projdir / 'tox.ini') as config:
-        config['testenv']['usedevelop'] = str(usedevelop)
+    with modify_config(projdir / "tox.ini") as config:
+        config["testenv"]["usedevelop"] = str(usedevelop)
     result = tox("-e", NATIVE_TOXENV, quiet=False)
-    assert ('test==0.0.0' in result.stdout or
-            'test @ file://' in result.stdout)
+    assert "test==0.0.0" in result.stdout or "test @ file://" in result.stdout

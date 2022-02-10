@@ -37,6 +37,9 @@ jobs:
         - py310-toxrelease
         - py310-toxmaster
         - py310-tox315
-
+        - py37-tox4
+        - py38-tox4
+        - py39-tox4
+        - py310-tox4
     # Use GitHub's Linux Docker host
     runs-on: ubuntu-latest

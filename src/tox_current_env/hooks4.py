@@ -3,21 +3,16 @@ import os
 import platform
 import sys
 import sysconfig
-import tempfile
-import warnings
 from pathlib import Path
 from typing import Set
 
 from tox.config.loader.memory import MemoryLoader
-from tox.execute.api import Execute
 from tox.execute.local_sub_process import (
     Execute,
     LocalSubProcessExecuteInstance,
 )
 from tox.plugin import impl
-from tox.report import HandledError
 from tox.tox_env.python.api import PythonInfo
-from tox.tox_env.python.pip.pip_install import Pip
 from tox.tox_env.python.runner import PythonRun
 
 

@@ -22,21 +22,16 @@ jobs:
         # This information is repeated in tox.ini
         # (see https://github.com/fedora-python/tox-github-action/issues/8)
         # Generate it by: tox -l | sed "s/^/- /"
-        - py36-toxrelease
+        - py36-tox3
         - py36-toxmaster
-        - py36-tox315
-        - py37-toxrelease
+        - py37-tox3
         - py37-toxmaster
-        - py37-tox315
-        - py38-toxrelease
+        - py38-tox3
         - py38-toxmaster
-        - py38-tox315
-        - py39-toxrelease
+        - py39-tox3
         - py39-toxmaster
-        - py39-tox315
-        - py310-toxrelease
+        - py310-tox3
         - py310-toxmaster
-        - py310-tox315
         - py37-tox4
         - py38-tox4
         - py39-tox4

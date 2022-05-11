@@ -56,7 +56,7 @@ def print_extras_stdout_arg(request):
 
 @contextlib.contextmanager
 def modify_config(tox_ini_path):
-    """Context manager that allows modifying the given Tox config file
+    """Context manager that allows modifying the given tox config file
 
     A statement like::
 

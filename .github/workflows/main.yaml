@@ -4,14 +4,14 @@ on:
   schedule:
     - cron: '0 0 * * 1'  # every Monday
 
-name: Run Tox tests
+name: Run tox tests
 
 jobs:
   tox_test:
-    name: Tox test
+    name: tox test
     steps:
     - uses: actions/checkout@v2
-    - name: Run Tox tests
+    - name: Run tox tests
       id: test
       uses: fedora-python/tox-github-action@master
       with:

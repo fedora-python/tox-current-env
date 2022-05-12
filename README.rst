@@ -185,7 +185,7 @@ the ``pytest`` command is present and uses the correct version of Python.
 Don't mix current-env and regular tox runs
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Tox caches the virtualenvs it creates, and doesn't distinguish between
+tox caches the virtualenvs it creates, and doesn't distinguish between
 regular virtualenvs and ``--current-env``.
 Don't mix ``tox --current-env``, ``tox --print-deps-to`` or ``tox --print-extras-to``
 runs and regular ``tox`` runs (without the flags provided by this plugin).
@@ -207,7 +207,7 @@ use the ``TOX_TESTENV_PASSENV`` environment variable.
 Read `the documentation for passing environment variables to tox
 <https://tox.readthedocs.io/en/latest/config.html#conf-passenv>`_.
 
-Tox provisioning
+tox provisioning
 ~~~~~~~~~~~~~~~~
 
 The tested projects can specify the

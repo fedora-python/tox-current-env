@@ -6,7 +6,6 @@ import sys
 import textwrap
 
 import pytest
-from packaging.version import parse as ver
 
 from utils import (
     DOT_TOX,
@@ -14,7 +13,6 @@ from utils import (
     NATIVE_EXECUTABLE,
     NATIVE_SITE_PACKAGES,
     NATIVE_TOXENV,
-    TOX_VERSION,
     envs_from_tox_ini,
     is_available,
     modify_config,
@@ -107,7 +105,6 @@ def test_print_deps_with_tox_minversion(projdir, toxenv, print_deps_stdout_arg):
     assert result.stdout == expected
 
 
-@pytest.mark.xfail(TOX_VERSION < ver("3.22"), reason="No support in old tox")
 @pytest.mark.parametrize("toxenv", envs_from_tox_ini())
 def test_print_deps_with_tox_requires(projdir, toxenv, print_deps_stdout_arg):
     with modify_config(projdir / "tox.ini") as config:
@@ -125,7 +122,6 @@ def test_print_deps_with_tox_requires(projdir, toxenv, print_deps_stdout_arg):
     assert result.stdout == expected
 
 
-@pytest.mark.xfail(TOX_VERSION < ver("3.22"), reason="No support in old tox")
 @pytest.mark.parametrize("toxenv", envs_from_tox_ini())
 def test_print_deps_with_tox_minversion_and_requires(
     projdir, toxenv, print_deps_stdout_arg
@@ -547,8 +543,6 @@ def test_self_is_not_installed(projdir, flag, usedevelop):
 
 @pytest.mark.parametrize("externals", [None, "allowlist_externals", "whitelist_externals"])
 def test_externals(projdir, externals):
-    if externals == "allowlist_externals" and TOX_VERSION < ver("3.18"):
-        pytest.xfail("No support in old tox")
     with modify_config(projdir / 'tox.ini') as config:
         config['testenv']['commands'] = "echo assertme"
         if externals is not None:

@@ -232,20 +232,20 @@ installs (a newer version of) ``tox`` and the missing packages
 into that environment and proxies all ``tox`` invocations trough that.
 Unfortunately, this is undesired for ``tox-current-env``.
 
- 1. Starting with ``tox`` 3.23, it is possible to invoke it as
-    ``tox --no-provision`` to prevent the provision entirely.
+ 1. It is possible to invoke ``tox`` with ``--no-provision``
+    to prevent the provision entirely.
     When requirements are missing, ``tox`` fails instead of provisioning.
     If a path is passed as a value for ``--no-provision``,
     the requirements will be serialized to the file, as JSON.
- 2. Starting with ``tox`` 3.22, the requires, if specified, are included in the
+ 2. The requires, if specified, are included in the
     results of ``tox --print-deps-to``.
     This only works when they are installed (otherwise see the first point).
  3. The minimal tox version, if specified, is included in the results of
-    ``tox --print-deps-to`` (as ``tox >= X.Y.Z``).
+    ``tox --print-deps-to``.
     This only works when the version requirement is satisfied
     (otherwise see the first point).
 
-With ``tox >= 3.23``, the recommend way to handle this is:
+The recommend way to handle this is:
 
  1. Run ``tox --no-provision provision.json --print-deps-to=...`` or similar.
  2. If the command fails, install requirements from ``provision.json`` to the

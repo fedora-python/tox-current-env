@@ -19,7 +19,7 @@ setup(
     packages=find_packages("src"),
     entry_points={"tox": ["current-env = tox_current_env.hooks"]},
     install_requires=[
-        "tox>=3.15",
+        "tox>=3.24",
         "importlib_metadata; python_version < '3.8'"
     ],
     extras_require={
@@ -42,6 +42,7 @@ setup(
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: Implementation :: CPython",
         "Topic :: Software Development :: Testing",
     ],

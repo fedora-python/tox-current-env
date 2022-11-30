@@ -4,14 +4,13 @@ import shutil
 import textwrap
 
 import pytest
-from packaging.version import parse as ver
 
 from utils import (
     DOT_TOX,
     NATIVE_EXEC_PREFIX_MSG,
     NATIVE_SITE_PACKAGES,
     NATIVE_TOXENV,
-    TOX_VERSION,
+    TOX_MIN_VERSION,
     envs_from_tox_ini,
     modify_config,
     needs_all_pythons,
@@ -32,7 +31,7 @@ def test_print_deps(toxenv, print_deps_stdout_arg):
     result = tox("-e", toxenv, print_deps_stdout_arg)
     expected = textwrap.dedent(
         f"""
-        tox>={TOX_VERSION}
+        tox>={TOX_MIN_VERSION}
         six
         py
         {tox_footer(toxenv)}
@@ -57,7 +56,6 @@ def test_print_deps_with_tox_minversion(projdir, toxenv, print_deps_stdout_arg):
     assert prep_tox_output(result.stdout) == expected
 
 
-@pytest.mark.xfail(TOX_VERSION < ver("3.22"), reason="No support in old tox")
 @pytest.mark.parametrize("toxenv", envs_from_tox_ini())
 def test_print_deps_with_tox_requires(projdir, toxenv, print_deps_stdout_arg):
     with modify_config(projdir / "tox.ini") as config:
@@ -67,7 +65,7 @@ def test_print_deps_with_tox_requires(projdir, toxenv, print_deps_stdout_arg):
         f"""
         setuptools>30
         pluggy
-        tox>={TOX_VERSION}
+        tox>={TOX_MIN_VERSION}
         six
         py
         {tox_footer(toxenv)}
@@ -76,7 +74,6 @@ def test_print_deps_with_tox_requires(projdir, toxenv, print_deps_stdout_arg):
     assert prep_tox_output(result.stdout) == expected
 
 
-@pytest.mark.xfail(TOX_VERSION < ver("3.22"), reason="No support in old tox")
 @pytest.mark.parametrize("toxenv", envs_from_tox_ini())
 def test_print_deps_with_tox_minversion_and_requires(
     projdir, toxenv, print_deps_stdout_arg
@@ -117,7 +114,7 @@ def test_allenvs_print_deps(print_deps_stdout_arg):
     result = tox(print_deps_stdout_arg)
     expected = []
     for env in envs_from_tox_ini():
-        expected.extend((f"tox>={TOX_VERSION}", "six", "py", f"{env}: OK"))
+        expected.extend((f"tox>={TOX_MIN_VERSION}", "six", "py", f"{env}: OK"))
     expected.pop()  # The last "py310: OK" is not there
     expected.append(tox_footer(spaces=0))
     expected = ("\n".join(expected)).splitlines()
@@ -140,7 +137,7 @@ def test_print_deps_to_file(toxenv, tmp_path):
     depspath = tmp_path / "deps"
     result = tox("-e", toxenv, "--print-deps-to", str(depspath))
     assert sorted(depspath.read_text().splitlines()) == sorted(
-        [f"tox>={TOX_VERSION}", "six", "py"]
+        [f"tox>={TOX_MIN_VERSION}", "six", "py"]
     )
     expected = tox_footer(toxenv, spaces=0) + "\n"
     assert prep_tox_output(result.stdout) == expected
@@ -160,7 +157,7 @@ def test_allenvs_print_deps_to_file(tmp_path, option):
     depspath = tmp_path / "deps"
     result = tox(option, str(depspath))
     assert sorted(depspath.read_text().splitlines()) == sorted(
-        [f"tox>={TOX_VERSION}", "six", "py"] * len(envs_from_tox_ini())
+        [f"tox>={TOX_MIN_VERSION}", "six", "py"] * len(envs_from_tox_ini())
     )
     expected = ""
     for env in envs_from_tox_ini()[:-1]:
@@ -303,7 +300,7 @@ def test_print_deps_without_python_command(tmp_path, print_deps_stdout_arg):
     result = tox("-e", NATIVE_TOXENV, print_deps_stdout_arg, env=env)
     expected = textwrap.dedent(
         f"""
-        tox>={TOX_VERSION}
+        tox>={TOX_MIN_VERSION}
         six
         py
         {tox_footer(NATIVE_TOXENV)}
@@ -342,10 +339,7 @@ def test_self_is_not_installed(projdir, flag, usedevelop):
 def test_self_is_installed_with_regular_tox(projdir, usedevelop):
     with modify_config(projdir / "tox.ini") as config:
         config["testenv"]["usedevelop"] = str(usedevelop)
-    _ = tox("-e", NATIVE_TOXENV, "-v", quiet=False)
-    egg_link = DOT_TOX / f"{NATIVE_TOXENV}/{NATIVE_SITE_PACKAGES}" / "test.egg-link"
-    dist_info = (
-        DOT_TOX / f"{NATIVE_TOXENV}/{NATIVE_SITE_PACKAGES}" / "test-0.0.0.dist-info"
-    )
-    to_test = egg_link if usedevelop else dist_info
-    assert to_test.exists()
+    result = tox("-e", NATIVE_TOXENV, "-v", quiet=False)
+    assert "test-0.0.0" in result.stdout
+    if usedevelop:
+        assert "test-0.0.0-0.editable" in result.stdout

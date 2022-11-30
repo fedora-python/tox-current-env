@@ -61,13 +61,9 @@ def _allow_all_externals(envconfig):
             setattr(envconfig, option, "*")
             break
     else:
-        # If none was set, we set one of them, preferably the new one:
-        if hasattr(envconfig, "allowlist_externals"):
-            envconfig.allowlist_externals = "*"
-        else:
-            # unless we need to fallback to the old and deprecated
-            # TODO, drop this when we drop support for tox < 3.18
-            envconfig.whitelist_externals = "*"
+        # If none was set, we set the new one
+        envconfig.allowlist_externals = "*"
+
 
 @tox.hookimpl
 def tox_configure(config):
@@ -225,8 +221,7 @@ def tox_dependencies(config):
     """Get dependencies of tox itself, 'minversion' and 'requires' config options"""
     if config.minversion is not None:
         yield f"tox >= {config.minversion}"
-    # config does not have the "requires" attribute until tox 3.22:
-    yield from getattr(config, "requires", [])
+    yield from config.requires
 
 
 @tox.hookimpl

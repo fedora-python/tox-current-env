@@ -24,7 +24,6 @@ jobs:
         # Generate it by: tox -l | sed "s/^/- /"
         - py36-tox324
         - py36-tox3
-        - py36-tox4
         - py37-tox324
         - py37-tox3
         - py37-tox4

@@ -240,7 +240,7 @@ def test_print_extras_to_file(toxenv, tmp_path):
 def test_allenvs_print_deps_to_file(tmp_path, option):
     depspath = tmp_path / "deps"
     result = tox(option, str(depspath))
-    assert depspath.read_text().splitlines() == ["six", "py"] * 5
+    assert depspath.read_text().splitlines() == ["six", "py"] * len(envs_from_tox_ini())
     expected = textwrap.dedent(
         f"""
         {tox_footer()}
@@ -253,7 +253,7 @@ def test_allenvs_print_deps_to_file(tmp_path, option):
 def test_allenvs_print_extras_to_file(tmp_path, option):
     extraspath = tmp_path / "extras"
     result = tox(option, str(extraspath))
-    assert extraspath.read_text().splitlines() == ["dev", "full"] * 5
+    assert extraspath.read_text().splitlines() == ["dev", "full"] * len(envs_from_tox_ini())
     expected = textwrap.dedent(
         f"""
         {tox_footer()}

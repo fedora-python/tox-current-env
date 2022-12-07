@@ -22,6 +22,13 @@ setup(
         "tox>=3.15,<4",
         "importlib_metadata; python_version < '3.8'"
     ],
+    extras_require={
+        "tests": [
+            "pytest",
+            "pytest-xdist",
+            "packaging",
+        ],
+    },
     python_requires=">=3.6",
     classifiers=[
         "Development Status :: 3 - Alpha",

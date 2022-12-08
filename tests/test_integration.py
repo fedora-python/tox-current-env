@@ -475,7 +475,10 @@ def test_regular_run():
 
 def test_regular_run_native_toxenv():
     result = tox("-e", NATIVE_TOXENV)
-    lines = sorted(result.stdout.splitlines()[:1])
+    # Filter out lines only present when custom $PYTHONPATH is set:
+    lines = [l for l in result.stdout.splitlines()
+             if not l.startswith("WARNING: Discarding $PYTHONPATH")]
+    lines = sorted(lines[:1])
     assert f"/.tox/{NATIVE_TOXENV} is the exec_prefix" in lines[0]
     assert "congratulations" in result.stdout
     for pkg in "py", "six", "test":
@@ -509,7 +512,10 @@ def test_regular_after_first_print_deps_is_supported(print_deps_stdout_arg):
     result = tox("-e", NATIVE_TOXENV, print_deps_stdout_arg)
     assert result.stdout.splitlines()[0] == "six"
     result = tox("-e", NATIVE_TOXENV)
-    lines = sorted(result.stdout.splitlines()[:1])
+    # Filter out lines only present when custom $PYTHONPATH is set:
+    lines = [l for l in result.stdout.splitlines()
+             if not l.startswith("WARNING: Discarding $PYTHONPATH")]
+    lines = sorted(lines[:1])
     assert "--recreate" not in result.stderr
     assert f"/.tox/{NATIVE_TOXENV} is the exec_prefix" in lines[0]
 

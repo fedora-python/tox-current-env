@@ -157,6 +157,29 @@ def test_print_deps(toxenv, print_deps_stdout_arg):
 
 
 @pytest.mark.parametrize("toxenv", ["py36", "py37", "py38", "py39"])
+@pytest.mark.parametrize("pre_post", ["pre", "post", "both"])
+def test_print_deps_with_commands_pre_post(projdir, toxenv, pre_post, print_deps_stdout_arg):
+    with modify_config(projdir / 'tox.ini') as config:
+        if pre_post == "both":
+            config["testenv"]["commands_pre"] = "echo unexpected"
+            config["testenv"]["commands_post"] = "echo unexpected"
+        else:
+            config["testenv"][f"commands_{pre_post}"] = "echo unexpected"
+    result = tox("-e", toxenv, print_deps_stdout_arg)
+    expected = textwrap.dedent(
+        f"""
+        six
+        py
+        ___________________________________ summary ____________________________________
+          {toxenv}: commands succeeded
+          congratulations :)
+        """
+    ).lstrip()
+    assert result.stdout == expected
+    assert result.stderr == ""
+
+
+@pytest.mark.parametrize("toxenv", ["py36", "py37", "py38", "py39"])
 def test_print_deps_with_tox_minversion(projdir, toxenv, print_deps_stdout_arg):
     with modify_config(projdir / 'tox.ini') as config:
         config["tox"]["minversion"] = "3.13"
@@ -229,6 +252,29 @@ def test_print_extras(toxenv, print_extras_stdout_arg):
         """
     ).lstrip()
     assert result.stdout == expected
+
+
+@pytest.mark.parametrize("toxenv", ["py36", "py37", "py38", "py39"])
+@pytest.mark.parametrize("pre_post", ["pre", "post", "both"])
+def test_print_extras_with_commands_pre_post(projdir, toxenv, pre_post, print_extras_stdout_arg):
+    with modify_config(projdir / 'tox.ini') as config:
+        if pre_post == "both":
+            config["testenv"]["commands_pre"] = "echo unexpected"
+            config["testenv"]["commands_post"] = "echo unexpected"
+        else:
+            config["testenv"][f"commands_{pre_post}"] = "echo unexpected"
+    result = tox("-e", toxenv, print_extras_stdout_arg)
+    expected = textwrap.dedent(
+        f"""
+        dev
+        full
+        ___________________________________ summary ____________________________________
+          {toxenv}: commands succeeded
+          congratulations :)
+        """
+    ).lstrip()
+    assert result.stdout == expected
+    assert result.stderr == ""
 
 
 @pytest.mark.parametrize("toxenv", ["py36", "py37", "py38", "py39"])

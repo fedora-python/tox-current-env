@@ -252,6 +252,34 @@ def tox_runtest(venv, redirect):
 
 
 @tox.hookimpl
+def tox_runtest_pre(venv):
+    """If --print-deps-to or --print-extras-to,
+    do nothing instead of running commands_pre."""
+    config = venv.envconfig.config
+    unsupported_raise(config, venv)
+
+    if config.option.print_deps_to or config.option.print_extras_to:
+        # this hook does not use firstresult=True,
+        # returning True would not stop running the commands,
+        # we must drop them
+        venv.envconfig.commands_pre = []
+
+
+@tox.hookimpl
+def tox_runtest_post(venv):
+    """If --print-deps-to or --print-extras-to,
+    do nothing instead of running commands_post."""
+    config = venv.envconfig.config
+    unsupported_raise(config, venv)
+
+    if config.option.print_deps_to or config.option.print_extras_to:
+        # this hook does not use firstresult=True,
+        # returning True would not stop running the commands,
+        # we must drop them
+        venv.envconfig.commands_post = []
+
+
+@tox.hookimpl
 def tox_cleanup(session):
     """Remove the fake virtualenv not to collide with regular tox
     Collisions can happen anyway (when tox is killed forcefully before this happens)

@@ -90,6 +90,15 @@ def tox_configure(config):
             config.envconfigs[testenv].usedevelop = False
             _allow_all_externals(config.envconfigs[testenv])
 
+    # When printing dependencies/extras we don't run any commands.
+    # Unfortunately tox_runtest_pre/tox_runtest_post hooks don't use firstresult=True,
+    # so we cannot override running commands_pre/commands_post.
+    # We empty the lists of commands instead.
+    if config.option.print_deps_to or config.option.print_extras_to:
+        for testenv in config.envconfigs:
+            config.envconfigs[testenv].commands_pre = []
+            config.envconfigs[testenv].commands_post = []
+
     if (getattr(config.option.print_deps_to, "name", object()) ==
         getattr(config.option.print_extras_to, "name", object())):
             raise tox.exception.ConfigError(
@@ -249,34 +258,6 @@ def tox_runtest(venv, redirect):
         ret = True
 
     return ret
-
-
-@tox.hookimpl
-def tox_runtest_pre(venv):
-    """If --print-deps-to or --print-extras-to,
-    do nothing instead of running commands_pre."""
-    config = venv.envconfig.config
-    unsupported_raise(config, venv)
-
-    if config.option.print_deps_to or config.option.print_extras_to:
-        # this hook does not use firstresult=True,
-        # returning True would not stop running the commands,
-        # we must drop them
-        venv.envconfig.commands_pre = []
-
-
-@tox.hookimpl
-def tox_runtest_post(venv):
-    """If --print-deps-to or --print-extras-to,
-    do nothing instead of running commands_post."""
-    config = venv.envconfig.config
-    unsupported_raise(config, venv)
-
-    if config.option.print_deps_to or config.option.print_extras_to:
-        # this hook does not use firstresult=True,
-        # returning True would not stop running the commands,
-        # we must drop them
-        venv.envconfig.commands_post = []
 
 
 @tox.hookimpl

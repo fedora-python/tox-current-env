@@ -96,7 +96,7 @@ def tox_add_env_config(env_conf, state):
     # For print-deps-to and print-extras-to, use empty
     # list of commands so the tox does nothing.
     if opt.print_deps_to or opt.print_extras_to:
-        empty_commands = MemoryLoader(commands=[])
+        empty_commands = MemoryLoader(commands=[], commands_pre=[], commands_post=[])
         env_conf.loaders.insert(0, empty_commands)
 
 

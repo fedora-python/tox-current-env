@@ -41,6 +41,30 @@ def test_print_deps(toxenv, print_deps_stdout_arg):
 
 
 @pytest.mark.parametrize("toxenv", envs_from_tox_ini())
+@pytest.mark.parametrize("pre_post", ["pre", "post", "both"])
+def test_print_deps_with_commands_pre_post(projdir, toxenv, pre_post, print_deps_stdout_arg):
+    with modify_config(projdir / 'tox.ini') as config:
+        if pre_post == "both":
+            config["testenv"]["commands_pre"] = "echo unexpected"
+            config["testenv"]["commands_post"] = "echo unexpected"
+        else:
+            config["testenv"][f"commands_{pre_post}"] = "echo unexpected"
+    result = tox("-e", toxenv, print_deps_stdout_arg)
+    expected = textwrap.dedent(
+        f"""
+        tox>={TOX_MIN_VERSION}
+        six
+        py
+        {tox_footer(toxenv)}
+        """
+    ).lstrip()
+    assert sorted(prep_tox_output(result.stdout).splitlines()) == sorted(
+        expected.splitlines()
+    )
+    assert result.stderr == ""
+
+
+@pytest.mark.parametrize("toxenv", envs_from_tox_ini())
 def test_print_deps_with_tox_minversion(projdir, toxenv, print_deps_stdout_arg):
     with modify_config(projdir / "tox.ini") as config:
         config["tox"]["minversion"] = "3.13"
@@ -108,6 +132,29 @@ def test_print_extras(toxenv, print_extras_stdout_arg):
     assert sorted(prep_tox_output(result.stdout).splitlines()) == sorted(
         expected.splitlines()
     )
+
+
+@pytest.mark.parametrize("toxenv", envs_from_tox_ini())
+@pytest.mark.parametrize("pre_post", ["pre", "post", "both"])
+def test_print_extras_with_commands_pre_post(projdir, toxenv, pre_post, print_extras_stdout_arg):
+    with modify_config(projdir / 'tox.ini') as config:
+        if pre_post == "both":
+            config["testenv"]["commands_pre"] = "echo unexpected"
+            config["testenv"]["commands_post"] = "echo unexpected"
+        else:
+            config["testenv"][f"commands_{pre_post}"] = "echo unexpected"
+    result = tox("-e", toxenv, print_extras_stdout_arg)
+    expected = textwrap.dedent(
+        f"""
+        dev
+        full
+        {tox_footer(toxenv)}
+        """
+    ).lstrip()
+    assert sorted(prep_tox_output(result.stdout).splitlines()) == sorted(
+        expected.splitlines()
+    )
+    assert result.stderr == ""
 
 
 def test_allenvs_print_deps(print_deps_stdout_arg):

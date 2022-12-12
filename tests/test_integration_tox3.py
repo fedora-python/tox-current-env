@@ -13,6 +13,7 @@ from utils import (
     NATIVE_EXECUTABLE,
     NATIVE_SITE_PACKAGES,
     NATIVE_TOXENV,
+    TOX_VERSION,
     envs_from_tox_ini,
     is_available,
     modify_config,
@@ -20,6 +21,10 @@ from utils import (
     tox,
     tox_footer,
 )
+
+
+if TOX_VERSION.major != 3:
+    pytest.skip("skipping tests for tox 3", allow_module_level=True)
 
 
 def test_native_toxenv_current_env():

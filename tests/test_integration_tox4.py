@@ -10,6 +10,7 @@ from utils import (
     NATIVE_EXEC_PREFIX_MSG,
     NATIVE_SITE_PACKAGES,
     NATIVE_TOXENV,
+    TOX_VERSION,
     TOX_MIN_VERSION,
     envs_from_tox_ini,
     modify_config,
@@ -18,6 +19,10 @@ from utils import (
     tox,
     tox_footer,
 )
+
+
+if TOX_VERSION.major != 4:
+    pytest.skip("skipping tests for tox 4", allow_module_level=True)
 
 
 def test_native_toxenv_current_env():

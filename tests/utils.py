@@ -52,15 +52,9 @@ def tox(*args, quiet=True, **kwargs):
     return cp
 
 
-TOX_MIN_VERSION = TOX_VERSION = ver(tox("--version").stdout.split(" ")[0].split("+")[0])
-# TOX_MIN_VERSION follows the same logic as tox itself
-# see: https://github.com/tox-dev/tox/blob/6cf388db53402c2595ca8b673ddabece46f4d06e/src/tox/provision.py#L76-L84
-if TOX_MIN_VERSION.is_devrelease or TOX_MIN_VERSION.is_prerelease:
-    TOX_MIN_VERSION = ver(f"{TOX_VERSION.base_version}a0")
-
+TOX_VERSION = ver(tox("--version").stdout.split(" ")[0].split("+")[0])
+TOX_MIN_VERSION = ver(f"{TOX_VERSION.major}.{TOX_VERSION.minor}")
 TOX4 = TOX_VERSION.major == 4
-# if TOX4:
-#     DOT_TOX /= "4"
 
 
 @contextlib.contextmanager

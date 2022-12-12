@@ -90,6 +90,15 @@ def tox_configure(config):
             config.envconfigs[testenv].usedevelop = False
             _allow_all_externals(config.envconfigs[testenv])
 
+    # When printing dependencies/extras we don't run any commands.
+    # Unfortunately tox_runtest_pre/tox_runtest_post hooks don't use firstresult=True,
+    # so we cannot override running commands_pre/commands_post.
+    # We empty the lists of commands instead.
+    if config.option.print_deps_to or config.option.print_extras_to:
+        for testenv in config.envconfigs:
+            config.envconfigs[testenv].commands_pre = []
+            config.envconfigs[testenv].commands_post = []
+
     if (getattr(config.option.print_deps_to, "name", object()) ==
         getattr(config.option.print_extras_to, "name", object())):
             raise tox.exception.ConfigError(

@@ -38,7 +38,7 @@ def tox(*args, quiet=True, **kwargs):
     kwargs.setdefault("cwd", os.getcwd())
     q = ("-q",) if quiet else ()
     env = dict(os.environ)
-    env.pop("TOX_WORK_DIR")
+    env.pop("TOX_WORK_DIR", None)
     kwargs.setdefault("env", env)
     try:
         print("current", os.getcwd(), "running in", kwargs["cwd"])

@@ -564,3 +564,17 @@ def test_self_is_installed_with_regular_tox(projdir, usedevelop):
         config["testenv"]["usedevelop"] = str(usedevelop)
     result = tox("-e", NATIVE_TOXENV, quiet=False)
     assert "test==0.0.0" in result.stdout or "test @ file://" in result.stdout
+
+
+@pytest.mark.parametrize("passenv", [None, "different list", "__var", "*"])
+def test_passenv(projdir, passenv):
+    with modify_config(projdir / "tox.ini") as config:
+        config["testenv"]["commands"] = """python -c 'import os; print(os.getenv("__var"))'"""
+        if passenv is not None:
+            existing = config["testenv"].get("passenv", "") + " "
+            config["testenv"]["passenv"] = existing + passenv
+    env = {"__var": "assertme"}
+    result = tox("-e", NATIVE_TOXENV, "--current-env", env=env, quiet=False)
+    assert result.returncode == 0
+    assert "\nassertme\n" in result.stdout
+    assert "\nNone\n" not in result.stdout

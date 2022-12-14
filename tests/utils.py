@@ -39,7 +39,7 @@ def tox(*args, quiet=True, **kwargs):
     q = ("-q",) if quiet else ()
     env = dict(os.environ)
     env.pop("TOX_WORK_DIR", None)
-    kwargs.setdefault("env", env)
+    kwargs["env"] = {**env, **kwargs.get("env", {})}
     try:
         print("current", os.getcwd(), "running in", kwargs["cwd"])
         cp = subprocess.run((sys.executable, "-m", "tox") + q + args, **kwargs)

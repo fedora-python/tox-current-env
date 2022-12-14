@@ -395,3 +395,30 @@ def test_self_is_installed_with_regular_tox(projdir, usedevelop):
     assert "test-0.0.0" in result.stdout
     if usedevelop:
         assert "test-0.0.0-0.editable" in result.stdout
+
+
+@pytest.mark.parametrize("passenv", [None, "different list", "__var", "*"])
+def test_passenv(projdir, passenv):
+    with modify_config(projdir / "tox.ini") as config:
+        config["testenv"]["commands"] = """python -c 'import os; print(os.getenv("__var"))'"""
+        if passenv is not None:
+            existing = config["testenv"].get("passenv", "") + " "
+            config["testenv"]["passenv"] = existing + passenv
+    env = {"__var": "assertme"}
+    result = tox("-e", NATIVE_TOXENV, "--current-env", env=env, quiet=False)
+    assert result.returncode == 0
+    assert "\nassertme\n" in result.stdout
+    assert "\nNone\n" not in result.stdout
+
+
+@pytest.mark.parametrize("pass_env", [None, "different\nlist", "__var", "*"])
+def test_pass_env(projdir, pass_env):
+    with modify_config(projdir / "tox.ini") as config:
+        config["testenv"]["commands"] = """python -c 'import os; print(os.getenv("__var"))'"""
+        if pass_env is not None:
+            config["testenv"]["pass_env"] = pass_env
+    env = {"__var": "assertme"}
+    result = tox("-e", NATIVE_TOXENV, "--current-env", env=env, quiet=False)
+    assert result.returncode == 0
+    assert "\nassertme\n" in result.stdout
+    assert "\nNone\n" not in result.stdout

@@ -87,11 +87,11 @@ def tox_add_core_config(core_conf, state):
 def tox_add_env_config(env_conf, state):
     opt = state.conf.options
     # This allows all external commands.
-    # All of them are extenal for us.
-    # passenv is here because `TOX_TESTENV_PASSENV`
-    # no longer works in tox 4.
+    # All of them are external for us.
+    # Because tox 4 no longer reads $TOX_TESTENV_PASSENV,
+    # this plugin always passes all environment variables by default.
     if opt.current_env:
-        allow_external_cmds = MemoryLoader(allowlist_externals=["*"], passenv=["*"])
+        allow_external_cmds = MemoryLoader(allowlist_externals=["*"], pass_env=["*"])
         env_conf.loaders.insert(0, allow_external_cmds)
     # For print-deps-to and print-extras-to, use empty
     # list of commands so the tox does nothing.

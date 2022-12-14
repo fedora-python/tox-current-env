@@ -85,6 +85,11 @@ def tox_configure(config):
         for testenv in config.envconfigs:
             config.envconfigs[testenv].usedevelop = False
             _allow_all_externals(config.envconfigs[testenv])
+            # Because tox 4 no longer reads $TOX_TESTENV_PASSENV,
+            # this plugin always passes all environment variables by default,
+            # even on tox 3.
+            # Unfortunately at this point the set contains actual values, not globs:
+            config.envconfigs[testenv].passenv |= set(os.environ.keys())
 
     # When printing dependencies/extras we don't run any commands.
     # Unfortunately tox_runtest_pre/tox_runtest_post hooks don't use firstresult=True,

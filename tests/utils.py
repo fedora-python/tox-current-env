@@ -117,10 +117,36 @@ def tox_footer(envs=None, spaces=8):
 
 
 def prep_tox_output(output):
-    """Remove time info from tox output"""
-    result = re.sub(r" \((\d+\.\d+|\d+) seconds\)", "", output)
-    result = re.sub(r" ✔ in (\d+\.\d+|\d+) seconds", "", result)
-    return result
+    """Remove time info from tox 4 output.
+    Strip spaces around operators in tox 3 output."""
+    if TOX4:
+        output = re.sub(r" \((\d+\.\d+|\d+) seconds\)", "", output)
+        output = re.sub(r" ✔ in (\d+\.\d+|\d+) seconds", "", output)
+    else:
+        output = re.sub(" ((<|>)=?) ", r"\1", output)
+    return output
+
+
+def expand_tox(text):
+    """Replace [[TOX4:...]] and [[TOX3:...]] expressions,
+    empty liens are stripped if created."""
+    source_lines = text.splitlines()
+    out_lines = []
+    for line in source_lines:
+        if not line:
+            out_lines.append(line)
+            continue
+        if TOX4:
+            line = re.sub(r"\[\[TOX3:[^\]]*\]\]", "", line)
+            line = re.sub(r"\[\[TOX4:([^\]]*)\]\]", r"\1", line)
+        else:
+            line = re.sub(r"\[\[TOX4:[^\]]*\]\]", "", line)
+            line = re.sub(r"\[\[TOX3:([^\]]*)\]\]", r"\1", line)
+        if line:
+            out_lines.append(line)
+    if text[-1] == "\n":
+        out_lines.append("")
+    return "\n".join(out_lines)
 
 
 needs_all_pythons = pytest.mark.skipif(

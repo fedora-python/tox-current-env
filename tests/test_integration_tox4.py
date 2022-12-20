@@ -11,7 +11,6 @@ from utils import (
     NATIVE_SITE_PACKAGES,
     NATIVE_TOXENV,
     TOX_VERSION,
-    TOX_MIN_VERSION,
     envs_from_tox_ini,
     modify_config,
     needs_all_pythons,
@@ -36,7 +35,7 @@ def test_print_deps(toxenv, print_deps_stdout_arg):
     result = tox("-e", toxenv, print_deps_stdout_arg)
     expected = textwrap.dedent(
         f"""
-        tox>={TOX_MIN_VERSION}
+        tox
         six
         py
         {tox_footer(toxenv)}
@@ -57,7 +56,7 @@ def test_print_deps_with_commands_pre_post(projdir, toxenv, pre_post, print_deps
     result = tox("-e", toxenv, print_deps_stdout_arg)
     expected = textwrap.dedent(
         f"""
-        tox>={TOX_MIN_VERSION}
+        tox
         six
         py
         {tox_footer(toxenv)}
@@ -94,7 +93,7 @@ def test_print_deps_with_tox_requires(projdir, toxenv, print_deps_stdout_arg):
         f"""
         setuptools>30
         pluggy
-        tox>={TOX_MIN_VERSION}
+        tox
         six
         py
         {tox_footer(toxenv)}
@@ -166,7 +165,7 @@ def test_allenvs_print_deps(print_deps_stdout_arg):
     result = tox(print_deps_stdout_arg)
     expected = []
     for env in envs_from_tox_ini():
-        expected.extend((f"tox>={TOX_MIN_VERSION}", "six", "py", f"{env}: OK"))
+        expected.extend(("tox", "six", "py", f"{env}: OK"))
     expected.pop()  # The last "py310: OK" is not there
     expected.append(tox_footer(spaces=0))
     expected = ("\n".join(expected)).splitlines()
@@ -189,7 +188,7 @@ def test_print_deps_to_file(toxenv, tmp_path):
     depspath = tmp_path / "deps"
     result = tox("-e", toxenv, "--print-deps-to", str(depspath))
     assert sorted(depspath.read_text().splitlines()) == sorted(
-        [f"tox>={TOX_MIN_VERSION}", "six", "py"]
+        ["tox", "six", "py"]
     )
     expected = tox_footer(toxenv, spaces=0) + "\n"
     assert prep_tox_output(result.stdout) == expected
@@ -209,7 +208,7 @@ def test_allenvs_print_deps_to_file(tmp_path, option):
     depspath = tmp_path / "deps"
     result = tox(option, str(depspath))
     assert sorted(depspath.read_text().splitlines()) == sorted(
-        [f"tox>={TOX_MIN_VERSION}", "six", "py"] * len(envs_from_tox_ini())
+        ["tox", "six", "py"] * len(envs_from_tox_ini())
     )
     expected = ""
     for env in envs_from_tox_ini()[:-1]:
@@ -352,7 +351,7 @@ def test_print_deps_without_python_command(tmp_path, print_deps_stdout_arg):
     result = tox("-e", NATIVE_TOXENV, print_deps_stdout_arg, env=env)
     expected = textwrap.dedent(
         f"""
-        tox>={TOX_MIN_VERSION}
+        tox
         six
         py
         {tox_footer(NATIVE_TOXENV)}

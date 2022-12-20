@@ -53,7 +53,6 @@ def tox(*args, quiet=True, **kwargs):
 
 
 TOX_VERSION = ver(tox("--version").stdout.split(" ")[0].split("+")[0])
-TOX_MIN_VERSION = ver(f"{TOX_VERSION.major}.{TOX_VERSION.minor}")
 TOX4 = TOX_VERSION.major == 4
 
 

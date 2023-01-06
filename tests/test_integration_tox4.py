@@ -424,7 +424,8 @@ def test_pass_env(projdir, pass_env):
 
 
 def test_report_installed(projdir):
-    env = {"TRAVIS": "true"}
+    # tox4 only reports installed when a CI is detected
+    env = {"CI": "true"}
     result = tox("-e", NATIVE_TOXENV, "--current-env", env=env, quiet=False)
     assert result.returncode == 0
     assert "tox==" in result.stdout

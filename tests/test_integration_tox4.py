@@ -421,3 +421,12 @@ def test_pass_env(projdir, pass_env):
     assert result.returncode == 0
     assert "\nassertme\n" in result.stdout
     assert "\nNone\n" not in result.stdout
+
+
+def test_report_installed(projdir):
+    # tox4 only reports installed when a CI is detected
+    env = {"CI": "true"}
+    result = tox("-e", NATIVE_TOXENV, "--current-env", env=env, quiet=False)
+    assert result.returncode == 0
+    assert "tox==" in result.stdout
+    assert "pytest==" in result.stdout

@@ -15,6 +15,11 @@ from tox.plugin import impl
 from tox.tox_env.python.api import PythonInfo
 from tox.tox_env.python.runner import PythonRun
 
+try:
+    import importlib.metadata as importlib_metadata
+except ImportError:
+    import importlib_metadata
+
 
 @impl
 def tox_register_tox_env(register):
@@ -105,6 +110,15 @@ class Installer:
 
     def install(self, *args, **kwargs):
         return None
+
+    def installed(self):
+        """Return list of installed packages like `pip freeze`."""
+        return [
+            "{}=={}".format(d.metadata.get("name"), d.version)
+            for d in sorted(
+                importlib_metadata.distributions(), key=lambda d: d.metadata.get("name")
+            )
+        ]
 
 
 class CurrentEnvLocalSubProcessExecutor(Execute):

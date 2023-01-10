@@ -14,7 +14,7 @@ setup(
     author_email="miro@hroncok.cz",
     url="https://github.com/fedora-python/tox-current-env",
     license="MIT",
-    version="0.0.10",
+    version="0.0.11",
     package_dir={"": "src"},
     packages=find_packages("src"),
     entry_points={"tox": ["current-env = tox_current_env.hooks"]},

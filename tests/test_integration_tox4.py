@@ -430,3 +430,24 @@ def test_report_installed(projdir):
     assert result.returncode == 0
     assert "tox==" in result.stdout
     assert "pytest==" in result.stdout
+
+
+@pytest.mark.parametrize("toxenv", envs_from_tox_ini())
+def test_print_deps_without_config_fails(projdir, toxenv, print_deps_stdout_arg):
+    tox_ini = projdir / "tox.ini"
+    tox_ini.unlink()
+    # note: tox will traverse the filesystem up to find a config,
+    # so if this (or the next) test fails,
+    # check if you don't have a stray tox.ini in /tmp
+    result = tox("-e", toxenv, print_deps_stdout_arg, check=False)
+    assert result.returncode > 0
+    assert "tox configuration is missing" in result.stderr
+
+
+@pytest.mark.parametrize("toxenv", envs_from_tox_ini())
+def test_print_extras_without_config_fails(projdir, toxenv):
+    tox_ini = projdir / "tox.ini"
+    tox_ini.unlink()
+    result = tox("-e", toxenv, "--print-extras-to=-", check=False)
+    assert result.returncode > 0
+    assert "tox configuration is missing" in result.stderr

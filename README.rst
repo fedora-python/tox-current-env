@@ -167,6 +167,9 @@ The plugin is available also for tox 4. Differences in behavior between tox 3 an
 - The plugin does not check the requested Python version nor the environment name.
   If you let it run for multiple environments they'll all use the same Python.
 - Deprecated ``--print-deps-only`` option is no longer available.
+- Unlike tox 3, tox 4 can normally run without any tox configuration.
+  When tox 4 runs with ``--print-deps-to`` or ``--print-extras-to`` without a tox configuration, it will fail.
+  This was deliberately done to make Fedora packages misusing this option fail to build.
 
 Use an isolated environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~

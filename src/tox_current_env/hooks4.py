@@ -61,6 +61,11 @@ def tox_add_option(parser):
 @impl
 def tox_add_core_config(core_conf, state):
     opt = state.conf.options
+    if (opt.print_deps_to or opt.print_extras_to) and not core_conf.loaders:
+        raise RuntimeError(
+            "--print-deps-to and/or --print-extras-to cannot be used without a tox config. "
+            "Seeing this error indicates this project either does not use tox at all or the tox configuration is missing."
+        )
 
     if opt.current_env or opt.print_deps_to or opt.print_extras_to:
         # We do not want to install the main package.

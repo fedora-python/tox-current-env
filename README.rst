@@ -12,7 +12,7 @@ The ``tox-current-env`` plugin adds these options:
    (that is, the environment where ``tox`` is invoked from and installed in).
    Unlike regular ``tox`` invocation, this installs no dependencies declared in ``deps``.
    An attempt to run this with a Python version that doesn't match will fail
-   (if ``tox`` is invoked from an Python 3.7 environment, any non 3.7 testenv will fail).
+   (if ``tox`` is invoked from a Python 3.7 environment, any non 3.7 testenv will fail).
 
 ``tox --print-deps-to=FILE``
     Instead of running any ``commands``, simply prints the
@@ -30,7 +30,7 @@ The ``tox-current-env`` plugin adds these options:
 
 It is possible to use the two printing options together, as long as the ``FILE`` is different.
 
-Invoking ``tox`` without any of the above options should behave as regular ``tox`` invocation without this plugin.
+Invoking ``tox`` without any of the above options should behave as a regular ``tox`` invocation without this plugin.
 Any deviation from this behavior is considered a bug.
 
 The plugin disables *tox's way* of providing a testing environment,
@@ -57,14 +57,14 @@ and we expect a future standard to evolve from ``tox.ini``.
 This plugin lets us use ``tox``'s dependency lists and testing commands for environments other than Python venvs.
 
 We hope this plugin will enable community best practices around ``tox`` configuration
-to grow to better accomodate non-virtualenv environments in general – for example,
+to grow to better accommodate non-virtualenv environments in general – for example,
 Linux distros, Conda, or containers.
 
 Specifically, this plugin was created for `Fedora <https://fedoralovespython.org/>`_'s needs.
 When we package Python software as RPM packages, we try to run the project's test suite during package build.
 However, we need to test if the software works integrated into Fedora,
 not with packages downloaded from PyPI into a fresh environment.
-By running the tests in *current environment*, we can achieve that.
+By running the tests in the *current environment*, we can achieve that.
 
 If you are interested in the RPM packaging part of this,
 see Fedora's `%pyproject RPM macros <https://src.fedoraproject.org/rpms/pyproject-rpm-macros>`_.
@@ -235,15 +235,15 @@ Unfortunately, this is undesired for ``tox-current-env``.
     When requirements are missing, ``tox`` fails instead of provisioning.
     If a path is passed as a value for ``--no-provision``,
     the requirements will be serialized to the file, as JSON.
- 2. The requires, if specified, are included in the
+ 2. The requirements, if specified, are included in the
     results of ``tox --print-deps-to``.
     This only works when they are installed (otherwise see the first point).
  3. The minimal tox version, if specified, is included in the results of
     ``tox --print-deps-to``.
     This only works when the version requirement is satisfied
-    (otherwise see the first point).
+    (otherwise, see the first point).
 
-The recommend way to handle this is:
+The recommended way to handle this is:
 
  1. Run ``tox --no-provision provision.json --print-deps-to=...`` or similar.
  2. If the command fails, install requirements from ``provision.json`` to the
@@ -273,7 +273,7 @@ This plugin might work on other Unix-like systems,
 but does not work on Microsoft Windows.
 
 This is alpha quality software.
-Use it at your on your own risk.
+Use it at your own risk.
 Pull requests with improvements are welcome.
 
 

@@ -12,7 +12,7 @@ from tox.execute.local_sub_process import (
     LocalSubProcessExecuteInstance,
 )
 from tox.plugin import impl
-from tox.tox_env.python.api import PythonInfo
+from tox.tox_env.python.api import PythonInfo, PythonSpec
 from tox.tox_env.python.runner import PythonRun
 
 try:
@@ -208,6 +208,17 @@ class CurrentEnv(PythonRun):
     @property
     def runs_on_platform(self):
         return sys.platform
+
+    @classmethod
+    def python_spec_for_path(cls, path):
+        # Needed for https://github.com/fedora-python/tox-current-env/issues/77
+        # This is a copy of an internal tox method added in
+        #   https://github.com/tox-dev/tox/pull/3327
+        implementation = sys.implementation.name
+        version = sys.version_info
+        bits = "64" if sys.maxsize > 2**32 else "32"
+        string_spec = f"{implementation}{version.major}{version.minor}-{bits}"
+        return PythonSpec.from_string_spec(string_spec)
 
 
 class PrintEnv(CurrentEnv):

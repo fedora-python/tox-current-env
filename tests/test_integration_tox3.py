@@ -518,7 +518,7 @@ def test_noquiet_installed_packages(flag):
 
     # default tox produces output sorted by package names
     assert packages == sorted(
-        packages, key=lambda p: p.partition("==")[0].partition(" @ ")[0].lower()
+        packages, key=lambda p: p.partition("==")[0].partition(" @ ")[0]
     )
 
     # without a flag, the output must match tox defaults

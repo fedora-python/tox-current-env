@@ -56,13 +56,23 @@ def tox_add_option(parser):
         help="Don't run tests, only print the  names of the required extras to the given file "
         + "(use `-` for stdout)",
     )
+    parser.add_argument(
+        "--print-dependency-groups-to",
+        "--print-dependency-groups-to-file",
+        action="store",
+        type=argparse.FileType("w"),
+        metavar="FILE",
+        default=False,
+        help="Don't run tests, only print the names of the required dependency-groups to the given file "
+        + "(use `-` for stdout)",
+    )
 
 
 @impl
 def tox_add_core_config(core_conf, state):
     opt = state.conf.options
 
-    if opt.current_env or opt.print_deps_to or opt.print_extras_to:
+    if opt.current_env or opt.print_deps_to or opt.print_extras_to or opt.print_dependency_groups_to:
         # We do not want to install the main package.
         # no_package is the same as skipsdist.
         loader = MemoryLoader(no_package=True)
@@ -72,14 +82,14 @@ def tox_add_core_config(core_conf, state):
         opt.default_runner = "current-env"
         return
 
-    if getattr(opt.print_deps_to, "name", object()) == getattr(
-        opt.print_extras_to, "name", object()
-    ):
+    exclusive = [getattr(getattr(opt, o), "name", object())
+                 for o in ("print_deps_to", "print_extras_to", "print_dependency_groups_to")]
+    if len(exclusive) != len(set(exclusive)):
         raise RuntimeError(
-            "The paths given to --print-deps-to and --print-extras-to cannot be identical."
+            "The paths given to --print-*-to options cannot be identical."
         )
 
-    if opt.print_deps_to or opt.print_extras_to:
+    if opt.print_deps_to or opt.print_extras_to or opt.print_dependency_groups_to:
         opt.default_runner = "print-env"
         return
 
@@ -98,9 +108,8 @@ def tox_add_env_config(env_conf, state):
     if opt.current_env:
         allow_external_cmds = MemoryLoader(allowlist_externals=["*"], pass_env=["*"])
         env_conf.loaders.insert(0, allow_external_cmds)
-    # For print-deps-to and print-extras-to, use empty
-    # list of commands so the tox does nothing.
-    if opt.print_deps_to or opt.print_extras_to:
+    # For print-*-to, use empty list of commands so that tox does nothing.
+    if opt.print_deps_to or opt.print_extras_to or opt.print_dependency_groups_to:
         empty_commands = MemoryLoader(commands=[], commands_pre=[], commands_post=[])
         env_conf.loaders.insert(0, empty_commands)
 
@@ -261,9 +270,20 @@ class PrintEnv(CurrentEnv):
             )
             self.options.print_extras_to.flush()
 
+        if self.options.print_dependency_groups_to:
+            if "dependency_groups" not in self.conf:
+                raise RuntimeError(
+                    "tox is too old to know about dependency_groups."
+                )
+            print(
+                *self.conf["dependency_groups"],
+                sep="\n",
+                file=self.options.print_dependency_groups_to,
+            )
+            self.options.print_dependency_groups_to.flush()
+
         # https://github.com/fedora-python/tox-current-env/issues/75
         return super().prepend_env_var_path()
-
 
     @staticmethod
     def id():

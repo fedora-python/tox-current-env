@@ -28,7 +28,15 @@ The ``tox-current-env`` plugin adds these options:
     This is useful for preparing the current environment for ``tox --current-env``.
     Use ``-`` for ``FILE`` to print to standard output.
 
-It is possible to use the two printing options together, as long as the ``FILE`` is different.
+``tox --print-dependency-groups-to=FILE``
+    Instead of running any ``commands``, simply prints the names of the
+    `declared dependency_groups <https://tox.wiki/en/latest/config.html#dependency_groups>`_
+    in ``dependency_groups`` to the specified ``FILE``.
+    This is useful for preparing the current environment for ``tox --current-env``.
+    Use ``-`` for ``FILE`` to print to standard output.
+    This option only exists with tox 4 and requires at least tox 4.22.
+
+It is possible to use the three printing options together, as long as the ``FILE`` is different.
 
 Invoking ``tox`` without any of the above options should behave as regular ``tox`` invocation without this plugin.
 Any deviation from this behavior is considered a bug.
@@ -93,7 +101,7 @@ Usage
 -----
 
 When the plugin is installed,
-use ``tox`` with ``--current-env``, ``--print-deps-to`` or ``--print-extras-to``
+use ``tox`` with ``--current-env``, ``--print-deps-to``, ``--print-extras-to`` or ``--print-dependency-groups-to``
 and all the other options as usual.
 Assuming your ``tox`` is installed on Python 3.7:
 
@@ -153,6 +161,20 @@ To get a list of names of extras, run:
      py37: commands succeeded
      congratulations :)
 
+To get a list of names of dependency groups, run:
+
+.. code-block:: console
+
+   $ tox -e py37 --print-dependency-groups-to -
+   py37 create: /home/pythonista/projects/holy-grail/tests/.tox/py37
+   py37 installed: ...you can see almost anything here...
+   py37 run-test-pre: PYTHONHASHSEED='3333333333'
+   group1
+   ...
+   ___________________________________ summary ____________________________________
+     py37: commands succeeded
+     congratulations :)
+
 
 Caveats, warnings and limitations
 ---------------------------------
@@ -167,6 +189,7 @@ The plugin is available also for tox 4. Differences in behavior between tox 3 an
 - The plugin does not check the requested Python version nor the environment name.
   If you let it run for multiple environments they'll all use the same Python.
 - Deprecated ``--print-deps-only`` option is no longer available.
+- The ``--print-dependency-groups-to`` is only defined on tox 4.
 
 Use an isolated environment
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~

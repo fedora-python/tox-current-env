@@ -2,7 +2,7 @@ import os
 import shutil
 
 import pytest
-from utils import FIXTURES_DIR, TOX4, modify_config, drop_unsupported_pythons
+from utils import FIXTURES_DIR, TOX_VERSION, TOX4, modify_config, drop_unsupported_pythons
 
 
 @pytest.fixture(autouse=True)
@@ -40,4 +40,17 @@ def print_deps_stdout_arg(request):
 @pytest.fixture(params=("--print-extras-to-file=-", "--print-extras-to=-"))
 def print_extras_stdout_arg(request):
     """Argument for printing extras to stdout"""
+    return request.param
+
+
+@pytest.fixture
+def dependency_groups_support():
+    """Support for dependency groups"""
+    if (TOX_VERSION.major, TOX_VERSION.minor) < (4, 22):
+        raise pytest.skip(reason="requires tox 4.22 or higher")
+
+
+@pytest.fixture(params=("--print-dependency-groups-to-file=-", "--print-dependency-groups-to=-"))
+def print_dependency_groups_stdout_arg(request, dependency_groups_support):
+    """Argument for printing dependency groups to stdout"""
     return request.param

@@ -113,11 +113,11 @@ def test_print_deps_with_tox_minversion(projdir, toxenv, print_deps_stdout_arg):
 @pytest.mark.parametrize("toxenv", envs_from_tox_ini())
 def test_print_deps_with_tox_requires(projdir, toxenv, print_deps_stdout_arg):
     with modify_config(projdir / "tox.ini") as config:
-        config["tox"]["requires"] = "\n    setuptools > 30\n    pluggy"
+        config["tox"]["requires"] = "\n    pytest > 5\n    pluggy"
     result = tox("-e", toxenv, print_deps_stdout_arg)
     expected = textwrap.dedent(
         f"""
-        setuptools > 30
+        pytest > 5
         pluggy
         six
         py
@@ -133,12 +133,12 @@ def test_print_deps_with_tox_minversion_and_requires(
 ):
     with modify_config(projdir / "tox.ini") as config:
         config["tox"]["minversion"] = "3.13"
-        config["tox"]["requires"] = "\n    setuptools > 30\n    pluggy"
+        config["tox"]["requires"] = "\n    pytest > 5\n    pluggy"
     result = tox("-e", toxenv, print_deps_stdout_arg)
     expected = textwrap.dedent(
         f"""
         tox >= 3.13
-        setuptools > 30
+        pytest > 5
         pluggy
         six
         py

@@ -261,6 +261,10 @@ class PrintEnv(CurrentEnv):
             )
             self.options.print_extras_to.flush()
 
+        # https://github.com/fedora-python/tox-current-env/issues/75
+        return super().prepend_env_var_path()
+
+
     @staticmethod
     def id():
         return "print-env"

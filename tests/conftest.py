@@ -9,7 +9,7 @@ from utils import FIXTURES_DIR, TOX4
 def projdir(tmp_path, monkeypatch, worker_id):
     pwd = tmp_path / "projdir"
     pwd.mkdir()
-    for fname in "tox.ini", "setup.py":
+    for fname in "tox.ini", "setup.py", "pyproject.toml":
         shutil.copy(FIXTURES_DIR / fname, pwd)
     monkeypatch.chdir(pwd)
     # https://github.com/pypa/pip/issues/5345#issuecomment-386424455

@@ -22,22 +22,20 @@ jobs:
         # This information is repeated in tox.ini
         # (see https://github.com/fedora-python/tox-github-action/issues/8)
         # Generate it by: tox -l | sed "s/^/- /"
-        - py36-tox324
         - py36-tox3
-        - py37-tox324
         - py37-tox3
         - py37-tox4
-        - py38-tox324
         - py38-tox3
         - py38-tox4
-        - py39-tox324
         - py39-tox3
         - py39-tox4
-        - py310-tox324
         - py310-tox3
         - py310-tox4
-        - py311-tox324
         - py311-tox3
         - py311-tox4
+        - py312-tox3
+        - py312-tox4
+        - py313-tox3
+        - py313-tox4
     # Use GitHub's Linux Docker host
     runs-on: ubuntu-latest

@@ -19,7 +19,7 @@ setup(
     packages=find_packages("src"),
     entry_points={"tox": ["current-env = tox_current_env.hooks"]},
     install_requires=[
-        "tox>=3.24",
+        "tox>=3.28",
         "importlib_metadata; python_version < '3.8'"
     ],
     extras_require={

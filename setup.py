@@ -27,7 +27,6 @@ setup(
             "pytest",
             "pytest-xdist",
             "packaging",
-            "virtualenv<20.22",  # pin required for tests with Python 3.6 envs
         ],
     },
     python_requires=">=3.6",

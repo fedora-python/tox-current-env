@@ -84,10 +84,16 @@ def is_available(python):
 
 
 @functools.lru_cache()
+def drop_unsupported_pythons(envlist):
+    return envlist[len("py36,py37,"):] if TOX4 else envlist
+
+
+@functools.lru_cache()
 def envs_from_tox_ini():
     cp = ConfigParser()
     cp.read(FIXTURES_DIR / "tox.ini")
-    return cp["tox"]["envlist"].split(",")
+    envlist = drop_unsupported_pythons(cp["tox"]["envlist"])
+    return envlist.split(",")
 
 
 def tox_footer(envs=None, spaces=8):

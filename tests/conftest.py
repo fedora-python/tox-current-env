@@ -2,7 +2,7 @@ import os
 import shutil
 
 import pytest
-from utils import FIXTURES_DIR, TOX4
+from utils import FIXTURES_DIR, TOX4, modify_config, drop_unsupported_pythons
 
 
 @pytest.fixture(autouse=True)
@@ -11,6 +11,9 @@ def projdir(tmp_path, monkeypatch, worker_id):
     pwd.mkdir()
     for fname in "tox.ini", "setup.py", "pyproject.toml":
         shutil.copy(FIXTURES_DIR / fname, pwd)
+    if TOX4:
+        with modify_config(pwd / "tox.ini") as config:
+            config["tox"]["envlist"] = drop_unsupported_pythons(config["tox"]["envlist"])
     monkeypatch.chdir(pwd)
     # https://github.com/pypa/pip/issues/5345#issuecomment-386424455
     monkeypatch.setenv("XDG_CACHE_HOME",

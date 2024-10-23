@@ -139,6 +139,30 @@ def test_print_extras(toxenv, print_extras_stdout_arg):
 
 
 @pytest.mark.parametrize("toxenv", envs_from_tox_ini())
+def test_print_dependency_groups(toxenv, print_dependency_groups_stdout_arg):
+    result = tox("-e", toxenv, print_dependency_groups_stdout_arg)
+    expected = textwrap.dedent(
+        f"""
+        dg1
+        {tox_footer(toxenv)}
+        """
+    ).lstrip()
+    assert sorted(prep_tox_output(result.stdout).splitlines()) == sorted(
+        expected.splitlines()
+    )
+
+
+@pytest.mark.parametrize("toxenv", envs_from_tox_ini())
+def test_print_dependency_groups_empty(projdir, toxenv, print_dependency_groups_stdout_arg):
+    with modify_config(projdir / 'tox.ini') as config:
+        del config["testenv"]["dependency_groups"]
+    result = tox("-e", toxenv, print_dependency_groups_stdout_arg)
+    expected = [l.strip() for l in tox_footer(toxenv).splitlines() if l.strip()]
+    got = [l.strip() for l in prep_tox_output(result.stdout).splitlines() if l.strip()]
+    assert got == expected
+
+
+@pytest.mark.parametrize("toxenv", envs_from_tox_ini())
 @pytest.mark.parametrize("pre_post", ["pre", "post", "both"])
 def test_print_extras_with_commands_pre_post(projdir, toxenv, pre_post, print_extras_stdout_arg):
     with modify_config(projdir / 'tox.ini') as config:
@@ -183,6 +207,17 @@ def test_allenvs_print_extras(print_extras_stdout_arg):
     assert sorted(prep_tox_output(result.stdout).splitlines()) == sorted(expected)
 
 
+def test_allenvs_print_dependency_groups(print_dependency_groups_stdout_arg):
+    result = tox(print_dependency_groups_stdout_arg)
+    expected = []
+    for env in envs_from_tox_ini():
+        expected.extend(("dg1", f"{env}: OK"))
+    expected.pop()  # The last "py310: OK" is not there
+    expected.append(tox_footer(spaces=0))
+    expected = ("\n".join(expected)).splitlines()
+    assert sorted(prep_tox_output(result.stdout).splitlines()) == sorted(expected)
+
+
 @pytest.mark.parametrize("toxenv", envs_from_tox_ini())
 def test_print_deps_to_file(toxenv, tmp_path):
     depspath = tmp_path / "deps"
@@ -199,6 +234,15 @@ def test_print_extras_to_file(toxenv, tmp_path):
     extraspath = tmp_path / "extras"
     result = tox("-e", toxenv, "--print-extras-to", str(extraspath))
     assert sorted(extraspath.read_text().splitlines()) == sorted(["dev", "full"])
+    expected = tox_footer(toxenv, spaces=0) + "\n"
+    assert prep_tox_output(result.stdout) == expected
+
+
+@pytest.mark.parametrize("toxenv", envs_from_tox_ini())
+def test_print_dependency_groups_to_file(toxenv, tmp_path, dependency_groups_support):
+    groupspath = tmp_path / "dependency_groups"
+    result = tox("-e", toxenv, "--print-dependency-groups-to", str(groupspath))
+    assert sorted(groupspath.read_text().splitlines()) == sorted(["dg1"])
     expected = tox_footer(toxenv, spaces=0) + "\n"
     assert prep_tox_output(result.stdout) == expected
 
@@ -231,6 +275,20 @@ def test_allenvs_print_extras_to_file(tmp_path, option):
     assert prep_tox_output(result.stdout) == expected
 
 
+@pytest.mark.parametrize("option", ("--print-dependency-groups-to", "--print-dependency-groups-to-file"))
+def test_allenvs_print_dependency_groups_to_file(tmp_path, option, dependency_groups_support):
+    groupspath = tmp_path / "dependency_groups"
+    result = tox(option, str(groupspath))
+    assert sorted(groupspath.read_text().splitlines()) == sorted(
+        ["dg1"] * len(envs_from_tox_ini())
+    )
+    expected = ""
+    for env in envs_from_tox_ini()[:-1]:
+        expected += f"{env}: OK\n"
+    expected += tox_footer(spaces=0) + "\n"
+    assert prep_tox_output(result.stdout) == expected
+
+
 def test_allenvs_print_deps_to_existing_file(tmp_path):
     depspath = tmp_path / "deps"
     depspath.write_text("nada")
@@ -251,26 +309,28 @@ def test_allenvs_print_extras_to_existing_file(tmp_path):
     assert "full" in lines
 
 
+def test_allenvs_print_dependency_groups_to_existing_file(tmp_path, dependency_groups_support):
+    groupspath = tmp_path / "dependency_groups"
+    groupspath.write_text("nada")
+    _ = tox("--print-dependency-groups-to", str(groupspath))
+    lines = groupspath.read_text().splitlines()
+    assert "nada" not in lines
+    assert "dg1" in lines
+
+
 @pytest.mark.parametrize("deps_stdout", [True, False])
 @pytest.mark.parametrize("extras_stdout", [True, False])
 def test_allenvs_print_deps_to_file_print_extras_to_other_file(
     tmp_path, deps_stdout, extras_stdout
 ):
     if deps_stdout and extras_stdout:
-        pytest.xfail("Unsupported combination of parameters")
+        pytest.skip("Unsupported combination of parameters")
 
     depspath = "-" if deps_stdout else tmp_path / "deps"
     extraspath = "-" if extras_stdout else tmp_path / "extras"
     result = tox("--print-deps-to", str(depspath), "--print-extras-to", str(extraspath))
-    if deps_stdout:
-        depslines = result.stdout.splitlines()
-        extraslines = extraspath.read_text().splitlines()
-    elif extras_stdout:
-        depslines = depspath.read_text().splitlines()
-        extraslines = result.stdout.splitlines()
-    else:
-        extraslines = extraspath.read_text().splitlines()
-        depslines = depspath.read_text().splitlines()
+    depslines = result.stdout.splitlines() if deps_stdout else depspath.read_text().splitlines()
+    extraslines = result.stdout.splitlines() if extras_stdout else extraspath.read_text().splitlines()
 
     assert "six" in depslines
     assert "py" in depslines
@@ -281,6 +341,45 @@ def test_allenvs_print_deps_to_file_print_extras_to_other_file(
     assert "py" not in extraslines
     assert "full" not in depslines
     assert "dev" not in depslines
+
+
+@pytest.mark.parametrize("deps_stdout", [True, False])
+@pytest.mark.parametrize("extras_stdout", [True, False])
+@pytest.mark.parametrize("dependency_groups_stdout", [True, False])
+def test_allenvs_print_deps_to_file_print_extras_to_other_file_print_dependency_groups_to_other_file(
+    tmp_path, deps_stdout, extras_stdout, dependency_groups_stdout, dependency_groups_support
+):
+    if deps_stdout + extras_stdout + dependency_groups_stdout > 1:
+        pytest.skip("Unsupported combination of parameters")
+
+    depspath = "-" if deps_stdout else tmp_path / "deps"
+    extraspath = "-" if extras_stdout else tmp_path / "extras"
+    groupspath = "-" if dependency_groups_stdout else tmp_path / "dependency_groups"
+    result = tox("--print-deps-to", str(depspath),
+                 "--print-extras-to", str(extraspath),
+                 "--print-dependency-groups-to", str(groupspath))
+    depslines = result.stdout.splitlines() if deps_stdout else depspath.read_text().splitlines()
+    extraslines = result.stdout.splitlines() if extras_stdout else extraspath.read_text().splitlines()
+    groupslines = result.stdout.splitlines() if dependency_groups_stdout else groupspath.read_text().splitlines()
+
+    assert "six" in depslines
+    assert "py" in depslines
+    assert "full" in extraslines
+    assert "dev" in extraslines
+    assert "dg1" in groupslines
+
+    assert "six" not in extraslines
+    assert "py" not in extraslines
+    assert "dg1" not in extraslines
+
+    assert "full" not in depslines
+    assert "dev" not in depslines
+    assert "dg1" not in depslines
+
+    assert "six" not in groupslines
+    assert "py" not in groupslines
+    assert "full" not in groupslines
+    assert "dev" not in groupslines
 
 
 def test_print_deps_extras_to_same_file_is_not_possible(tmp_path):
@@ -298,6 +397,36 @@ def test_print_deps_extras_to_same_file_is_not_possible(tmp_path):
     assert "cannot be identical" in result.stderr
 
 
+def test_print_deps_dependency_groups_to_same_file_is_not_possible(tmp_path, dependency_groups_support):
+    depsgroupspath = tmp_path / "depsgroups"
+    result = tox(
+        "-e",
+        NATIVE_TOXENV,
+        "--print-deps-to",
+        str(depsgroupspath),
+        "--print-dependency-groups-to",
+        str(depsgroupspath),
+        check=False,
+    )
+    assert result.returncode > 0
+    assert "cannot be identical" in result.stderr
+
+
+def test_print_extras_dependency_groups_to_same_file_is_not_possible(tmp_path, dependency_groups_support):
+    extrasgroupspath = tmp_path / "extrasgroups"
+    result = tox(
+        "-e",
+        NATIVE_TOXENV,
+        "--print-extras-to",
+        str(extrasgroupspath),
+        "--print-dependency-groups-to",
+        str(extrasgroupspath),
+        check=False,
+    )
+    assert result.returncode > 0
+    assert "cannot be identical" in result.stderr
+
+
 def test_print_deps_extras_to_stdout_is_not_possible(
     tmp_path,
     print_deps_stdout_arg,
@@ -308,6 +437,38 @@ def test_print_deps_extras_to_stdout_is_not_possible(
         NATIVE_TOXENV,
         print_deps_stdout_arg,
         print_extras_stdout_arg,
+        check=False,
+    )
+    assert result.returncode > 0
+    assert "cannot be identical" in result.stderr
+
+
+def test_print_deps_dependency_groups_to_stdout_is_not_possible(
+    tmp_path,
+    print_deps_stdout_arg,
+    print_dependency_groups_stdout_arg,
+):
+    result = tox(
+        "-e",
+        NATIVE_TOXENV,
+        print_deps_stdout_arg,
+        print_dependency_groups_stdout_arg,
+        check=False,
+    )
+    assert result.returncode > 0
+    assert "cannot be identical" in result.stderr
+
+
+def test_print_extras_dependency_groups_to_stdout_is_not_possible(
+    tmp_path,
+    print_extras_stdout_arg,
+    print_dependency_groups_stdout_arg,
+):
+    result = tox(
+        "-e",
+        NATIVE_TOXENV,
+        print_extras_stdout_arg,
+        print_dependency_groups_stdout_arg,
         check=False,
     )
     assert result.returncode > 0

@@ -3,4 +3,5 @@ include pyproject.toml
 include tox.ini
 recursive-include tests *.py
 recursive-include tests *.ini
+recursive-include tests pyproject.toml
 prune tests/.tox

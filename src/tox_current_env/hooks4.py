@@ -93,10 +93,6 @@ def tox_add_core_config(core_conf, state):
         opt.default_runner = "print-env"
         return
 
-    # No options used - switch back to the standard runner
-    # Workaround for: https://github.com/tox-dev/tox/issues/2264
-    opt.default_runner = "virtualenv"
-
 
 @impl
 def tox_add_env_config(env_conf, state):

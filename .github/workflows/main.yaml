@@ -35,5 +35,6 @@ jobs:
         - py312-tox4
         - py313-tox3
         - py313-tox4
+        - py314-tox4
     # Use GitHub's Linux Docker host
     runs-on: ubuntu-latest

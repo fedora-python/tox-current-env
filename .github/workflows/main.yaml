@@ -23,8 +23,6 @@ jobs:
         # (see https://github.com/fedora-python/tox-github-action/issues/8)
         # Generate it by: tox -l | sed "s/^/- /"
         - py36-tox3
-        - py37-tox3
-        - py37-tox4
         - py38-tox3
         - py38-tox4
         - py39-tox3

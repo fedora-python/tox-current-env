@@ -36,6 +36,12 @@ The ``tox-current-env`` plugin adds these options:
     Use ``-`` for ``FILE`` to print to standard output.
     This option only exists with tox 4 and requires at least tox 4.22.
 
+``tox --assert-config``
+    In tox 4, this option ensures that tox fails (raises an exception) if no configuration is found.
+    By default, tox 4 does not terminate when no configuration exists.
+    In tox 3, this option has no effect, but it can still be specified without causing errors.
+    This option can be used alongside other options.
+
 It is possible to use the three printing options together, as long as the ``FILE`` is different.
 
 Invoking ``tox`` without any of the above options should behave as regular ``tox`` invocation without this plugin.

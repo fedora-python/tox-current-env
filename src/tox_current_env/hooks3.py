@@ -48,6 +48,12 @@ def tox_addoption(parser):
         help="Don't run tests, only print the  names of the required extras to the given file "
             + "(use `-` for stdout)",
     )
+    parser.add_argument(
+        "--assert-config",
+        action="store_true",
+        default=False,
+        help="Fail if no tox configuration is found (default on tox 3, does nothing)",
+    )
 
 
 def _plugin_active(option):

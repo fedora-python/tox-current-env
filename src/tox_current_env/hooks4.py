@@ -66,11 +66,25 @@ def tox_add_option(parser):
         help="Don't run tests, only print the names of the required dependency-groups to the given file "
         + "(use `-` for stdout)",
     )
+    parser.add_argument(
+        "--assert-config",
+        action="store_true",
+        default=False,
+        help="Fail if no tox configuration is found",
+    )
 
 
 @impl
 def tox_add_core_config(core_conf, state):
     opt = state.conf.options
+
+    if opt.assert_config and not state.conf.src_path.exists():
+        raise LookupError(
+            "tox configuration not found. "
+            "To use tox, please ensure tox configuration is located in current directory "
+            "(in tox.ini, setup.cfg, pyproject.toml, or tox.toml). "
+            "See https://tox.wiki/en/latest/config.html for details."
+        )
 
     if opt.current_env or opt.print_deps_to or opt.print_extras_to or opt.print_dependency_groups_to:
         # We do not want to install the main package.

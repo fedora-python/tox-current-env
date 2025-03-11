@@ -591,3 +591,54 @@ def test_report_installed(projdir):
     assert result.returncode == 0
     assert "tox==" in result.stdout
     assert "pytest==" in result.stdout
+
+
+def test_assert_config_option_with_config(projdir):
+    result = tox("-l", "--assert-config", check=False)
+    assert result.returncode == 0
+
+
+def test_assert_config_option_without_config(projdir):
+    (projdir / "tox.ini").unlink()
+    result = tox("-l", "--assert-config", check=False)
+    assert result.returncode > 0
+    assert "config" in result.stderr
+    assert "not found" in result.stderr
+
+
+def test_assert_config_option_with_setup_cfg(projdir):
+    (projdir / "tox.ini").unlink()
+    setup_cfg = projdir / "setup.cfg"
+    setup_cfg.write_text(textwrap.dedent("""
+        [tox:tox]
+        env_list =
+            py310
+    """))
+    result = tox("-l", "--assert-config", check=False)
+    assert result.returncode == 0
+
+
+def test_assert_config_option_with_pyproject_toml(projdir):
+    (projdir / "tox.ini").unlink()
+    pyproject_toml = projdir / "pyproject.toml"
+    pyproject_toml.write_text(textwrap.dedent('''
+        [tool.tox]
+        legacy_tox_ini = """
+        [tox]
+        envlist =
+            py310
+        """
+    '''))
+    result = tox("-l", "--assert-config", check=False)
+    assert result.returncode == 0
+
+
+def test_assert_config_option_with_pyproject_toml_native(projdir):
+    (projdir / "tox.ini").unlink()
+    pyproject_toml = projdir / "pyproject.toml"
+    pyproject_toml.write_text(textwrap.dedent("""
+        [tool.tox]
+        env_list = ["3.13"]
+    """))
+    result = tox("-l", "--assert-config", check=False)
+    assert result.returncode == 0

@@ -159,16 +159,46 @@ def unsupported_raise(config, venv):
             "--current-env after regular tox run is not supported without --recreate (-r)."
         )
 
+def handle_dependencies(packages):
+    # Create lists to hold the regular packages and special cases
+    regular_packages = []
+    requirements_files = []
+    constraints_files = []
 
-@tox.hookimpl
-def tox_testenv_create(venv, action):
-    """We create a fake virtualenv with just the symbolic link"""
-    config = venv.envconfig.config
-    create_fake_env = check_version = config.option.current_env
-    if config.option.print_deps_to or config.option.print_extras_to:
-        if is_any_env(venv):
-            # We don't need anything
-            return True
+    # Separate packages based on their prefixes
+    for package in packages:
+        if package.startswith('-r'):
+            requirements_files.append(package[3:].strip())
+        elif package.startswith('-c'):
+            constraints_files.append(package[3:].strip())
+        else:
+            regular_packages.append(package)
+        
+    # Now you can call venv.get_resolved_dependencies() with regular packages
+    resolved_deps = venv.get_resolved_dependencies(regular_packages)
+
+    # Handle requirements and constraints files as needed
+    for req_file in requirements_files:
+        # Process the requirements file (e.g., read and resolve dependencies)
+        print(f"Processing requirements file: {req_file}")
+
+    for constr_file in constraints_files:
+        # Process the constraints file (e.g., read and apply constraints)
+        print(f"Processing constraints file: {constr_file}")
+    return resolved_deps
+
+ @tox.hookimpl 
+ def tox_runtest(venv, redirect): 
+     """If --print-deps-only, prints deps instead of running tests""" 
+     config = venv.envconfig.config 
+     unsupported_raise(config, venv) 
+     if config.option.print_deps_path is not None: 
+         with open(config.option.print_deps_path, "a", encoding="utf-8") as f: 
+             print(*venv.get_resolved_dependencies(), sep="\n", file=f) 
+         return True 
+     if config.option.print_deps_only: 
+         print(*venv.get_resolved_dependencies(), sep="\n") 
+         return True 
         else:
             # We need at least some kind of environment,
             # or tox fails without a python command

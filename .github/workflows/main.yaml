@@ -27,7 +27,6 @@ jobs:
         - py39-tox4
         - py310-tox3
         - py310-tox4
-        - py311-tox3
         - py311-tox4
         - py312-tox3
         - py312-tox4

@@ -241,14 +241,15 @@ class CurrentEnv(PythonRun):
 
 
 class PrintEnv(CurrentEnv):
-    def __init__(self, create_args):
-        super().__init__(create_args)
+    def register_config(self):
+        super().register_config()
 
         if self.options.print_extras_to:
             if "extras" not in self.conf:
                 # Unfortunately, if there is skipsdist/no_package or skip_install
                 # in the config, this section is not parsed at all so we have to
                 # do it here manually to be able to read its content.
+                # This is no longer true on tox 4.44+, but the if above guards it.
                 self.conf.add_config(
                     keys=["extras"],
                     of_type=Set[str],

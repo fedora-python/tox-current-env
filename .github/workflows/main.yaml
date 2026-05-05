@@ -23,8 +23,6 @@ jobs:
         # (see https://github.com/fedora-python/tox-github-action/issues/8)
         # Generate it by: tox -l | sed "s/^/- /"
         - py36-tox3
-        - py38-tox3
-        - py38-tox4
         - py39-tox3
         - py39-tox4
         - py310-tox3
@@ -36,5 +34,6 @@ jobs:
         - py313-tox3
         - py313-tox4
         - py314-tox4
+        - py315-tox4
     # Use GitHub's Linux Docker host
     runs-on: ubuntu-latest

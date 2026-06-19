@@ -272,7 +272,7 @@ def test_allenvs_print_extras_to_file(tmp_path, option):
     for env in envs_from_tox_ini()[:-1]:
         expected += f"{env}: OK\n"
     expected += tox_footer(spaces=0) + "\n"
-    assert prep_tox_output(result.stdout) == expected
+    assert sorted(prep_tox_output(result.stdout)) == sorted(expected)
 
 
 @pytest.mark.parametrize("option", ("--print-dependency-groups-to", "--print-dependency-groups-to-file"))

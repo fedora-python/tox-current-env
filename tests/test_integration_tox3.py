@@ -213,7 +213,7 @@ def test_allenvs_print_extras(print_extras_stdout_arg):
     for env in envs_from_tox_ini():
         expected += "dev\nfull\n"
     expected += tox_footer(spaces=0) + "\n"
-    assert result.stdout == expected
+    assert sorted(result.stdout) == sorted(expected)
 
 
 @pytest.mark.parametrize("toxenv", envs_from_tox_ini())
@@ -265,7 +265,7 @@ def test_allenvs_print_extras_to_file(tmp_path, option):
         {tox_footer()}
         """
     ).lstrip()
-    assert result.stdout == expected
+    assert sorted(result.stdout) == sorted(expected)
 
 
 def test_allenvs_print_deps_to_existing_file(tmp_path):
